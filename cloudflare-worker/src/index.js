@@ -8,7 +8,7 @@ let jwksCache = { keys: [], expiresAt: 0 };
 
 function corsHeaders(origin, env) {
   const allowed = (env.ALLOWED_ORIGIN || "https://tnartz.github.io").split(",").map(x => x.trim());
-  const headers = { "Vary": "Origin", "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Allow-Headers": "Authorization, Content-Type" };
+  const headers = { "Vary": "Origin", "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS", "Access-Control-Allow-Headers": "Authorization, Content-Type" };
   if (allowed.includes(origin)) headers["Access-Control-Allow-Origin"] = origin;
   return headers;
 }
@@ -65,8 +65,36 @@ export default {
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers });
     if (origin && !headers["Access-Control-Allow-Origin"]) return json({ error: "Origin not allowed" }, 403, headers);
     const url = new URL(request.url);
-    if (request.method !== "POST" || url.pathname !== "/api/create-upload") return json({ error: "Not found" }, 404, headers);
     if (!await requireAdmin(request)) return json({ error: "Admin authentication required" }, 403, headers);
+    if (!env.BUNNY_STREAM_API_KEY) return json({ error: "Bunny API secret is not configured." }, 500, headers);
+
+    if (request.method === "GET" && url.pathname === "/api/videos") {
+      const page = Math.max(1, Math.min(1000, Number(url.searchParams.get("page") || 1)));
+      const search = (url.searchParams.get("search") || "").trim().slice(0, 180);
+      const endpoint = new URL("https://video.bunnycdn.com/library/" + BUNNY_LIBRARY_ID + "/videos");
+      endpoint.searchParams.set("page", String(page));
+      endpoint.searchParams.set("itemsPerPage", "100");
+      endpoint.searchParams.set("orderBy", "date");
+      if (search) endpoint.searchParams.set("search", search);
+      const response = await fetch(endpoint.toString(), { headers: { "Accept": "application/json", "AccessKey": env.BUNNY_STREAM_API_KEY } });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) return json({ error: data.message || "Не удалось получить список видео Bunny Stream." }, 502, headers);
+      return json(data, 200, headers);
+    }
+
+    if (request.method === "DELETE" && url.pathname.startsWith("/api/videos/")) {
+      const videoId = url.pathname.slice("/api/videos/".length);
+      if (!/^[0-9a-f-]{36}$/i.test(videoId)) return json({ error: "Некорректный ID видео." }, 400, headers);
+      const response = await fetch("https://video.bunnycdn.com/library/" + BUNNY_LIBRARY_ID + "/videos/" + videoId, {
+        method: "DELETE",
+        headers: { "Accept": "application/json", "AccessKey": env.BUNNY_STREAM_API_KEY }
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.success === false) return json({ error: data.message || "Bunny Stream не смог удалить видео." }, 502, headers);
+      return json({ success: true, videoId }, 200, headers);
+    }
+
+    if (request.method !== "POST" || url.pathname !== "/api/create-upload") return json({ error: "Not found" }, 404, headers);
 
     let body;
     try { body = await request.json(); } catch { return json({ error: "Invalid JSON" }, 400, headers); }
