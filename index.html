@@ -1126,6 +1126,12 @@ async function uploadVideoToBunny(){
   if(!window.tus||!window.tus.Upload){message.textContent="Не загрузилась библиотека загрузки. Обнови страницу и попробуй снова.";return}
   const animeTitle=document.getElementById("adminAnime").value,season=Number(document.getElementById("adminSeason").value),ep=Number(document.getElementById("adminEpisode").value),episodeTitle=document.getElementById("adminEpisodeTitle").value.trim();
   if(!animeTitle||!Number.isInteger(season)||season<1||!Number.isInteger(ep)||ep<1){message.textContent="Сначала выбери аниме, сезон и номер серии.";return}
+  const targetId=encodeURIComponent(animeTitle)+"_s"+season+"_e"+ep;
+  const targetSnap=await db.collection("streams").doc(targetId).get();
+  if(targetSnap.exists&&targetSnap.data()?.bunnyVideoId){
+   message.textContent="Для этой серии уже привязано видео Bunny Stream. Сначала отвяжи или замени его через менеджер видеотеки, чтобы не потерять старый ролик.";
+   return;
+  }
   const title=animeTitle+" · S"+season+"E"+ep+(episodeTitle?" — "+episodeTitle:"");
   button.disabled=true;percent.textContent="0%";bar.style.width="0%";status.textContent="Создаём видеозапись…";message.textContent="Подготавливаем безопасную загрузку в Bunny Stream.";
   try{
@@ -1162,7 +1168,8 @@ async function saveStream(){
  try{
   const id=encodeURIComponent(animeTitle)+"_s"+season+"_e"+ep;
   const data={animeTitle,season,episode:ep,title,url,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
-  await db.collection("streams").doc(id).set(data);
+  const streamRef=db.collection("streams").doc(id),existing=await streamRef.get();
+  await streamRef.set(data,{merge:true});
   if(!EPISODE_CATALOG[animeTitle])EPISODE_CATALOG[animeTitle]={};
   if(!EPISODE_CATALOG[animeTitle][season])EPISODE_CATALOG[animeTitle][season]={};
   EPISODE_CATALOG[animeTitle][season][ep]={url,title};
