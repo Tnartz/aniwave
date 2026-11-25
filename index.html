@@ -642,10 +642,12 @@ function renderAdmin(){
  });
  Object.keys(EPISODE_CATALOG).forEach(name=>Object.keys(EPISODE_CATALOG[name]||{}).forEach(season=>Object.keys(EPISODE_CATALOG[name][season]||{}).forEach(ep=>{
   const item=EPISODE_CATALOG[name][season][ep];
-  rows.push('<div style="border-bottom:1px solid #332b48;padding:10px 0"><div class="muted" style="margin-bottom:7px">'+escapeHTML(name)+' · сезон '+season+' · серия '+ep+'</div><div class="row" style="gap:7px;flex-wrap:wrap"><input class="field" style="flex:1;min-width:120px" type="number" min="1" max="999" value="'+ep+'" aria-label="Новый номер серии" data-edit-episode-number="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'"><input class="field" style="flex:2;min-width:150px" maxlength="120" placeholder="Название серии" value="'+escapeHTML(item.title||'')+'" aria-label="Название серии" data-edit-episode-title="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'"><select class="field" style="max-width:145px" aria-label="Перенести в сезон" data-move-season="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'"></select><button class="secondary" type="button" data-move-episode="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'">Перенести</button><button class="secondary" type="button" data-save-episode="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'">Сохранить</button><button class="secondary" type="button" data-delete-stream="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'">Удалить</button></div></div>');
+  rows.push('<div style="border-bottom:1px solid #332b48;padding:12px 0"><div class="muted" style="margin-bottom:7px">'+escapeHTML(name)+' · сезон '+season+' · серия '+ep+'</div><div class="row" style="gap:7px;flex-wrap:wrap"><input class="field" style="flex:1;min-width:120px" type="number" min="1" max="999" value="'+ep+'" aria-label="Новый номер серии" data-edit-episode-number="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'"><input class="field" style="flex:2;min-width:150px" maxlength="120" placeholder="Название серии" value="'+escapeHTML(item.title||'')+'" aria-label="Название серии" data-edit-episode-title="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'"><select class="field" style="max-width:145px" aria-label="Перенести в сезон" data-move-season="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'"></select><button class="secondary" type="button" data-move-episode="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'">Перенести</button><button class="secondary" type="button" data-save-episode="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'">Сохранить</button><button class="secondary" type="button" data-delete-stream="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'">Удалить</button><input class="field" style="flex:1 1 100%;min-width:220px" type="url" value="'+escapeHTML(item.url||'')+'" aria-label="HLS ссылка" data-edit-stream-url="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'"><button class="secondary" type="button" data-check-stream="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'">Проверить поток</button><button class="secondary" type="button" data-save-stream-url="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'">Сохранить ссылку</button><span class="review-meta" data-stream-status="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'"></span></div></div>');
  })));
  list.innerHTML=rows.join("")||"Пока нет добавленных источников.";
  list.querySelectorAll("[data-delete-stream]").forEach(button=>button.addEventListener("click",()=>deleteStream(decodeURIComponent(button.dataset.deleteStream),Number(button.dataset.season),Number(button.dataset.episode))));
+ list.querySelectorAll("[data-save-stream-url]").forEach(button=>button.addEventListener("click",()=>saveStreamUrl(decodeURIComponent(button.dataset.saveStreamUrl),Number(button.dataset.season),Number(button.dataset.episode))));
+ list.querySelectorAll("[data-check-stream]").forEach(button=>button.addEventListener("click",()=>checkStreamUrl(decodeURIComponent(button.dataset.checkStream),Number(button.dataset.season),Number(button.dataset.episode),button)));
  list.querySelectorAll("[data-save-episode]").forEach(button=>button.addEventListener("click",()=>updateEpisode(decodeURIComponent(button.dataset.saveEpisode),Number(button.dataset.season),Number(button.dataset.episode))));
  list.querySelectorAll("[data-move-episode]").forEach(button=>button.addEventListener("click",()=>moveEpisodeSeason(decodeURIComponent(button.dataset.moveEpisode),Number(button.dataset.season),Number(button.dataset.episode))));
  list.querySelectorAll("[data-move-season]").forEach(select=>{const name=decodeURIComponent(select.dataset.moveSeason),current=Number(select.dataset.season);select.innerHTML=getAvailableSeasons(name).map(n=>'<option value="'+n+'"'+(n===current?" selected":"")+'>Сезон '+n+'</option>').join("");});
@@ -771,6 +773,41 @@ async function moveEpisodeSeason(animeTitle,oldSeason,ep){
   renderAdmin();
  }catch(error){message.textContent="Не удалось перенести серию: "+error.message}
 }
+
+async function saveStreamUrl(animeTitle,season,ep){
+ const message=document.getElementById("adminMessage"),key=encodeURIComponent(animeTitle);
+ if(!user||!isAdmin){message.textContent="Нет прав администратора.";return}
+ const input=document.querySelector('[data-edit-stream-url="'+key+'"][data-season="'+season+'"][data-episode="'+ep+'"]');
+ const url=(input?.value||"").trim();
+ if(!/^https:\/\//i.test(url)||!/\.m3u8(\?|#|$)/i.test(url)){message.textContent="Нужна HTTPS-ссылка на HLS-плейлист .m3u8.";return}
+ try{
+  const id=encodeURIComponent(animeTitle)+"_s"+season+"_e"+ep,ref=db.collection("streams").doc(id),snap=await ref.get();
+  if(!snap.exists)throw new Error("Источник не найден. Обнови список.");
+  await ref.set({url,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+  if(!EPISODE_CATALOG[animeTitle])EPISODE_CATALOG[animeTitle]={};
+  if(!EPISODE_CATALOG[animeTitle][season])EPISODE_CATALOG[animeTitle][season]={};
+  EPISODE_CATALOG[animeTitle][season][ep]={...EPISODE_CATALOG[animeTitle][season][ep],url};
+  if(season===1){if(!HLS_SOURCES[animeTitle])HLS_SOURCES[animeTitle]={};HLS_SOURCES[animeTitle][ep]=url}
+  message.textContent="HLS-ссылка сохранена.";
+  const status=document.querySelector('[data-stream-status="'+key+'"][data-season="'+season+'"][data-episode="'+ep+'"]');if(status)status.textContent="Ссылка сохранена";
+  if(currentAnime.name===animeTitle&&selectedSeason===season&&episode===ep)awLoadEpisode();
+ }catch(error){message.textContent="Не удалось сохранить ссылку: "+error.message}
+}
+async function checkStreamUrl(animeTitle,season,ep,button){
+ const key=encodeURIComponent(animeTitle),input=document.querySelector('[data-edit-stream-url="'+key+'"][data-season="'+season+'"][data-episode="'+ep+'"]'),status=document.querySelector('[data-stream-status="'+key+'"][data-season="'+season+'"][data-episode="'+ep+'"]'),url=(input?.value||"").trim();
+ if(!/^https:\/\//i.test(url)||!/\.m3u8(\?|#|$)/i.test(url)){if(status)status.textContent="Укажи HTTPS .m3u8 ссылку";return}
+ const original=button.textContent;button.disabled=true;button.textContent="Проверяем…";if(status)status.textContent="Проверяем доступность плейлиста…";
+ try{
+  const response=await fetch(url,{method:"GET",headers:{Range:"bytes=0-2047"},cache:"no-store"});
+  if(!response.ok&&response.status!==206)throw new Error("HTTP "+response.status);
+  const body=(await response.text()).trim();
+  if(!body.startsWith("#EXTM3U"))throw new Error("Ответ получен, но это не HLS-плейлист (#EXTM3U не найден)");
+  if(status)status.textContent="✓ HLS-плейлист доступен · HTTP "+response.status;
+ }catch(error){
+  if(status)status.textContent=error.message==="Failed to fetch"?"Не удалось проверить: возможна CORS-блокировка или недоступный сервер":error.message;
+ }finally{button.disabled=false;button.textContent=original}
+}
+
 async function saveStream(){
  const message=document.getElementById("adminMessage");
  if(!user||!isAdmin){message.textContent="Нет прав администратора.";return}
