@@ -59,6 +59,9 @@ footer{text-align:center;color:#777184;padding:30px 10px;font-size:12px}
 }
 @media(min-width:761px) and (max-width:1050px){.episodes{grid-template-columns:repeat(3,minmax(0,1fr))}}
 
+
+/* Simplified admin workspace */
+#admin .section-head{margin-top:12px}#admin .admin-shortcuts{display:flex;gap:9px;flex-wrap:wrap;margin:14px 0 20px}#admin .admin-shortcuts a{color:#e9ddff;text-decoration:none;background:#211832;border:1px solid #493b68;border-radius:11px;padding:10px 13px;font-size:13px;font-weight:750}#admin .admin-shortcuts a:hover{border-color:#a78bfa;background:#302347}#admin .panel{scroll-margin-top:16px}#admin .admin-panel-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:16px}#admin .admin-panel-heading h3{margin:5px 0}#admin .admin-panel-heading p{margin:5px 0}#admin .admin-step{width:36px;height:36px;flex:0 0 36px;border-radius:12px;background:#39265b;color:#e9ddff;display:grid;place-items:center;font-weight:900}#admin .admin-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 14px}#admin .admin-field-wide{grid-column:1/-1}#admin .admin-upload-zone{margin-top:8px;padding:18px;border:1px dashed #7655a5;border-radius:16px;background:linear-gradient(135deg,#211832,#171329)}#admin .admin-upload-actions{margin-top:8px}#admin .admin-upload-progress{margin-top:14px}#admin .admin-progress-track{height:8px;background:#30253e;border-radius:99px;overflow:hidden;margin-top:9px}#admin .admin-progress-track>div{height:100%;width:0;background:linear-gradient(90deg,#8b5cf6,#c4b5fd);transition:width .2s}#admin .admin-advanced{border-top:1px solid #3a2d4d;margin-top:16px;padding-top:14px}#admin .admin-advanced summary{cursor:pointer;color:#d7c5f5;font-weight:750;padding:5px 0}#admin .admin-list-toolbar{margin:12px 0;align-items:center}#admin #adminStreams{margin-top:12px}#admin .profile-stats{grid-template-columns:repeat(3,minmax(0,1fr))}#admin .profile-stat{padding:12px}#admin .profile-stat strong{font-size:22px}@media(max-width:650px){#admin .admin-form-grid{grid-template-columns:1fr}#admin .admin-field-wide{grid-column:auto}#admin .profile-stats{grid-template-columns:repeat(2,minmax(0,1fr))}#admin .admin-upload-actions>*{width:100%}#admin .admin-shortcuts a{flex:1;text-align:center}}
 </style>
 </head>
 <body>
@@ -123,60 +126,61 @@ footer{text-align:center;color:#777184;padding:30px 10px;font-size:12px}
 <div class="panel" id="loginBox"><h3 id="authHeading">Войти в AniWave</h3><p class="muted">Войди или создай аккаунт AniWave с помощью email и пароля.</p><label>Email</label><input class="field" id="email" type="email" autocomplete="email" placeholder="you@example.com"><label>Пароль</label><input class="field" id="password" type="password" autocomplete="current-password" placeholder="Не менее 6 символов"><div class="row"><button id="authSubmit" onclick="submitAuth()">Войти</button><button class="secondary" id="authSwitch" onclick="toggleAuthMode()">Создать аккаунт</button></div><p class="meta" id="loginMessage" role="status"></p></div>
 <div class="panel hidden" id="profileBox"><div class="profile-identity"><div class="profile-avatar" id="profileAvatarView">🌙</div><div><h3 id="profileNicknameView">Зритель AniWave</h3><p class="muted" id="profileEmail"></p></div></div><div class="profile-editor"><h3>Настроить профиль</h3><label for="profileNicknameInput">Никнейм</label><input class="field" id="profileNicknameInput" maxlength="24" placeholder="Например, AnimeFan"><label for="profileAvatarInput">Аватар</label><select class="field" id="profileAvatarInput"><option value="🌙">🌙 Луна</option><option value="🐱">🐱 Кот</option><option value="🦊">🦊 Лиса</option><option value="🐼">🐼 Панда</option><option value="🐸">🐸 Лягушка</option><option value="🐺">🐺 Волк</option><option value="🐉">🐉 Дракон</option><option value="🦄">🦄 Единорог</option><option value="🍥">🍥 Наруто</option><option value="⚔️">⚔️ Воин</option><option value="🌸">🌸 Сакура</option><option value="⭐">⭐ Звезда</option></select><button type="button" onclick="saveUserProfile()">Сохранить профиль</button><span class="review-meta" id="profileSaveMessage"></span></div><div class="profile-stats" id="profileStats"><div class="profile-stat"><strong id="profileFavCount">0</strong><span>В избранном</span></div><div class="profile-stat"><strong id="profileReviewCount">0</strong><span>Мои отзывы</span></div><div class="profile-stat"><strong id="profileWatchedCount">0</strong><span>Начато аниме</span></div></div><div class="profile-recent"><h3>Недавно смотрел</h3><div id="profileRecent" class="profile-recent-list"></div></div><p class="muted">Аккаунт AniWave · Free Member</p><h3>Избранное</h3><div id="favoritesList" class="muted">Загрузка...</div><h3>Сообщество AniWave</h3><p class="muted" id="communityCount">Загружаем количество участников…</p><div class="row" style="margin:10px 0"><input class="field" id="communitySearch" style="margin:0;flex:1;min-width:180px" maxlength="40" placeholder="Найти участника по нику…" oninput="renderPublicProfiles()"><button type="button" class="secondary" onclick="copyInviteLink()">🔗 Пригласить</button></div><div class="profile-recent-list" id="publicProfilesList">Загружаем участников…</div><p class="review-meta" id="inviteStatus"></p><h3>✉️ Личные сообщения <span id="dmUnreadBadge" class="hidden" style="display:inline-block;background:#dc2626;color:#fff;border-radius:20px;padding:3px 9px;font-size:12px;vertical-align:middle">0</span></h3><p class="review-meta" id="dmNotificationHint">Уведомления о новых сообщениях включены</p><div class="profile-recent-list" id="dmInbox">Загружаем переписки…</div><div class="panel hidden" id="dmPanel" style="margin-top:14px"><div class="row" style="justify-content:space-between"><h3 id="dmTitle">Диалог</h3><button class="ghost" type="button" onclick="closeDirectMessage()">Закрыть</button></div><div id="dmMessages" class="comment-list" style="max-height:360px;overflow:auto;margin:12px 0"></div><form id="dmForm" class="comment-form" onsubmit="sendDirectMessage(event)"><textarea id="dmText" maxlength="2000" placeholder="Напиши сообщение…" required></textarea><div class="row"><button type="submit">Отправить</button><span class="review-meta" id="dmStatus"></span></div></form></div><button class="secondary" onclick="logout()">Выйти</button></div></section>
 <section id="admin" class="page hidden">
-<div class="section-head"><h2>Админ-панель AniWave</h2><span class="meta">Управление каталогом и HLS-источниками</span></div>
-<div class="panel">
-  <h3>Добавить новое аниме</h3>
-  <p class="muted">Название должно быть уникальным. Постер — необязательная HTTPS-ссылка на изображение.</p>
+ <div class="section-head"><div><h2>Админ-панель</h2><span class="meta">Управление AniWave в одном месте</span></div></div>
+ <div class="admin-shortcuts">
+  <a href="#admin-upload">⬆ Загрузить серию</a><a href="#admin-library">▣ Видеотека</a><a href="#admin-catalog">＋ Каталог</a><a href="#admin-tools">⚙ Дополнительно</a>
+ </div>
+ <div class="panel admin-main-workflow" id="admin-upload">
+  <div class="admin-panel-heading"><div><span class="eyebrow">ОСНОВНОЕ ДЕЙСТВИЕ</span><h3>Загрузить новую серию</h3><p class="muted">Выбери аниме и серию, добавь видеофайл — AniWave отправит его в Bunny и сохранит поток автоматически.</p></div><span class="admin-step">1</span></div>
+  <div class="admin-form-grid">
+   <div class="admin-field-wide"><label for="adminAnime">Аниме</label><select class="field" id="adminAnime"></select></div>
+   <div><label for="adminSeason">Сезон</label><input class="field" id="adminSeason" type="number" min="1" max="99" value="1"></div>
+   <div><label for="adminEpisode">Серия</label><input class="field" id="adminEpisode" type="number" min="1" max="999" value="1"></div>
+   <div class="admin-field-wide"><label for="adminEpisodeTitle">Название серии <span class="meta">(необязательно)</span></label><input class="field" id="adminEpisodeTitle" maxlength="120" placeholder="Например: Начало охоты"></div>
+  </div>
+  <div class="admin-upload-zone">
+   <label for="bunnyVideoFile">Видеофайл</label><input class="field" id="bunnyVideoFile" type="file" accept="video/*">
+   <div class="row admin-upload-actions"><button type="button" id="bunnyUploadButton">⬆ Загрузить в Bunny Stream</button><button class="secondary" type="button" id="adminAddSeason">＋ Добавить сезон</button></div>
+   <div class="profile-stat admin-upload-progress"><strong id="bunnyUploadPercent">0%</strong><span id="bunnyUploadStatus">Ожидает файл</span></div>
+   <div class="admin-progress-track"><div id="bunnyUploadProgress"></div></div>
+   <p class="muted" id="bunnyUploadMessage" role="status">Загружай только видео, на распространение которых у тебя есть права.</p>
+  </div>
+  <details class="admin-advanced"><summary>Добавить ссылку вручную вместо загрузки файла</summary>
+   <p class="muted">Используй HTTPS HLS-ссылку .m3u8, если видео уже размещено в разрешённом источнике.</p>
+   <label for="adminUrl">HLS URL (.m3u8)</label><input class="field" id="adminUrl" type="url" placeholder="https://example.com/episode.m3u8">
+   <div class="row"><button id="adminSave" type="button">Сохранить ссылку</button><button class="secondary" id="adminReload" type="button">Обновить список</button></div>
+   <p id="adminMessage" class="muted" role="status"></p>
+  </details>
+ </div>
+ <div class="panel" id="admin-library">
+  <div class="admin-panel-heading"><div><span class="eyebrow">КОНТРОЛЬ</span><h3>Состояние видеотеки</h3><p class="muted">Краткая сводка по добавленным сериям и источникам.</p></div></div>
+  <div id="adminLibraryStats" class="profile-stats"><div class="profile-stat"><strong>—</strong><span>Серий в каталоге</span></div><div class="profile-stat"><strong>—</strong><span>Исправных источников</span></div><div class="profile-stat"><strong>—</strong><span>Требуют внимания</span></div><div class="profile-stat"><strong>—</strong><span>Без видеоссылки</span></div><div class="profile-stat"><strong>—</strong><span>Сезонов</span></div><div class="profile-stat"><strong>—</strong><span>Проверено источников</span></div></div>
+  <details class="admin-advanced"><summary>Показать серии без видеоссылок</summary><div id="adminMissingEpisodes" class="muted">Проверяем каталог…</div></details>
+  <details class="admin-advanced"><summary>Все добавленные серии и управление ими</summary><div class="row admin-list-toolbar"><button class="secondary" type="button" id="adminCheckAllStreams">Проверить все потоки</button><span class="muted" id="adminCheckAllStatus" role="status">Проверка доступности всех HLS-источников</span></div><div id="adminStreams" class="muted">Загрузка...</div></details>
+ </div>
+ <div class="panel" id="admin-catalog">
+  <div class="admin-panel-heading"><div><span class="eyebrow">КАТАЛОГ</span><h3>Добавить аниме</h3><p class="muted">Создай карточку тайтла. Остальные настройки можно раскрыть ниже.</p></div></div>
   <label for="newAnimeName">Название</label><input class="field" id="newAnimeName" maxlength="80" placeholder="Название аниме">
-  <label for="newAnimeGenre">Жанр</label><input class="field" id="newAnimeGenre" maxlength="40" placeholder="Экшен, романтика, приключения...">
-  <div class="row"><div style="flex:1;min-width:130px"><label for="newAnimeYear">Год</label><input class="field" id="newAnimeYear" type="number" min="1900" max="2100" value="2026"></div><div style="flex:1;min-width:130px"><label for="newAnimeRating">Рейтинг</label><input class="field" id="newAnimeRating" type="number" min="0" max="10" step="0.1" value="8.0"></div></div>
-  <label for="newAnimeEmoji">Эмодзи карточки</label><input class="field" id="newAnimeEmoji" maxlength="8" value="🎬">
-  <div class="panel" style="margin:14px 0;padding:16px">
-   <h4>Загрузка постера с компьютера</h4>
-   <p class="muted">Постер загрузится в Cloudinary, а ссылка сохранится в каталоге. Нужны Cloud name и unsigned upload preset.</p>
-   <label for="cloudinaryCloudName">Cloudinary Cloud name</label><input class="field" id="cloudinaryCloudName" placeholder="например, my-cloud">
-   <label for="cloudinaryUploadPreset">Unsigned upload preset</label><input class="field" id="cloudinaryUploadPreset" placeholder="например, aniwave_posters">
+  <div class="admin-form-grid"><div><label for="newAnimeGenre">Жанр</label><input class="field" id="newAnimeGenre" maxlength="40" placeholder="Экшен, романтика..."></div><div><label for="newAnimeYear">Год</label><input class="field" id="newAnimeYear" type="number" min="1900" max="2100" value="2026"></div><div><label for="newAnimeRating">Рейтинг</label><input class="field" id="newAnimeRating" type="number" min="0" max="10" step="0.1" value="8.0"></div><div><label for="newAnimeEmoji">Эмодзи карточки</label><input class="field" id="newAnimeEmoji" maxlength="8" value="🎬"></div></div>
+  <details class="admin-advanced"><summary>Постер и описание</summary>
+   <p class="muted">Cloudinary используется для загрузки постеров.</p>
+   <div class="admin-form-grid"><div><label for="cloudinaryCloudName">Cloud name</label><input class="field" id="cloudinaryCloudName" placeholder="my-cloud"></div><div><label for="cloudinaryUploadPreset">Unsigned upload preset</label><input class="field" id="cloudinaryUploadPreset" placeholder="aniwave_posters"></div></div>
    <button class="secondary" type="button" id="saveCloudinaryConfig">Сохранить настройки загрузки</button>
-   <label for="newAnimePosterFile">Выбрать постер (JPG, PNG или WebP, до 5 МБ)</label><input class="field" id="newAnimePosterFile" type="file" accept="image/jpeg,image/png,image/webp">
+   <label for="newAnimePosterFile">Файл постера (JPG, PNG или WebP, до 5 МБ)</label><input class="field" id="newAnimePosterFile" type="file" accept="image/jpeg,image/png,image/webp">
    <img id="newAnimePosterPreview" alt="Предпросмотр постера" class="hidden" style="max-width:150px;max-height:220px;object-fit:cover;border-radius:12px;margin-top:10px">
    <p id="posterUploadMessage" class="muted" role="status"></p>
-  </div>
-  <label for="newAnimePoster">Или ссылка на постер (HTTPS)</label><input class="field" id="newAnimePoster" type="url" placeholder="https://example.com/poster.jpg">
-  <label for="newAnimeDesc">Описание</label><textarea class="field" id="newAnimeDesc" maxlength="600" rows="3" placeholder="Краткое описание..."></textarea>
-  <div class="row"><button id="createAnime" type="button">Добавить в каталог</button></div>
+   <label for="newAnimePoster">Или ссылка на постер (HTTPS)</label><input class="field" id="newAnimePoster" type="url" placeholder="https://example.com/poster.jpg">
+   <label for="newAnimeDesc">Описание</label><textarea class="field" id="newAnimeDesc" maxlength="600" rows="3" placeholder="Краткое описание..."></textarea>
+  </details>
+  <div class="row"><button id="createAnime" type="button">＋ Добавить в каталог</button></div>
   <p id="animeAdminMessage" class="muted" role="status"></p><div id="adminAnimeList" class="muted"></div>
-</div>
-<div class="panel">
- <h3>Обновить постер существующего аниме</h3>
- <p class="muted">Выбери тайтл и загрузи официальный постер или изображение, на которое у тебя есть права. Ссылка сохранится в Cloudinary и каталоге AniWave.</p>
- <label for="posterAnimeSelect">Аниме</label><select class="field" id="posterAnimeSelect"></select>
- <label for="existingPosterFile">Файл постера (JPG, PNG или WebP, до 5 МБ)</label><input class="field" id="existingPosterFile" type="file" accept="image/jpeg,image/png,image/webp">
- <img id="existingPosterPreview" class="hidden" alt="Предпросмотр нового постера" style="max-width:150px;max-height:220px;object-fit:cover;border-radius:12px;margin:8px 0">
- <div class="row"><button type="button" id="updateExistingPoster">Загрузить и заменить постер</button></div>
- <p class="muted" id="existingPosterMessage" role="status"></p>
-</div>
-<div class="panel">
- <h3>Пакетная загрузка постеров</h3>
- <p class="muted">Выбери сразу несколько файлов. Название файла должно совпадать с названием аниме (например, "Наруто.jpg" или "Тетрадь смерти.png"). Сайт сам сопоставит их с каталогом, загрузит в Cloudinary и сохранит ссылки в Firestore.</p>
- <label for="batchPosterFiles">Выбрать несколько постеров</label>
- <input class="field" id="batchPosterFiles" type="file" accept="image/jpeg,image/png,image/webp" multiple>
- <div class="row"><button type="button" id="batchPosterUpload">Загрузить выбранные постеры</button></div>
- <p class="muted" id="batchPosterMessage" role="status"></p>
- <div id="batchPosterResults" class="muted"></div>
-</div>
-<div class="panel"><h3>Состояние видеотеки</h3><div id="adminLibraryStats" class="profile-stats"><div class="profile-stat"><strong>—</strong><span>Серий в каталоге</span></div><div class="profile-stat"><strong>—</strong><span>Исправных источников</span></div><div class="profile-stat"><strong>—</strong><span>Требуют внимания</span></div><div class="profile-stat"><strong>—</strong><span>Без видеоссылки</span></div><div class="profile-stat"><strong>—</strong><span>Сезонов</span></div><div class="profile-stat"><strong>—</strong><span>Проверено источников</span></div></div><p class="muted" id="adminLibraryStatsNote">Сводка по сериям, уже внесённым в AniWave. Она не угадывает общее число серий в каждом аниме.</p></div>
-<div class="panel"><h3>Серии без видеоссылок</h3><p class="muted">Здесь отображаются только серии, уже заведённые в каталоге, но ещё не имеющие HLS-ссылки.</p><div id="adminMissingEpisodes" class="muted">Проверяем каталог…</div></div>
-<div class="panel"><h3>Управление HLS-источниками</h3>
-  <p class="muted">Добавляй сезоны и серии с HTTPS HLS-ссылками .m3u8 только на видео, которое ты вправе распространять. Можно задать название каждой серии. Тестовый поток не является серией аниме.</p>
-  <label for="adminAnime">Аниме</label><select class="field" id="adminAnime"></select>
-  <div class="row"><div style="flex:1;min-width:120px"><label for="adminSeason">Номер сезона</label><input class="field" id="adminSeason" type="number" min="1" max="99" value="1"></div><div style="flex:1;min-width:120px"><label for="adminEpisode">Номер серии</label><input class="field" id="adminEpisode" type="number" min="1" max="999" value="1"></div></div><div class="row"><button class="secondary" id="adminAddSeason" type="button">＋ Добавить сезон</button></div><label for="adminEpisodeTitle">Название серии (необязательно)</label><input class="field" id="adminEpisodeTitle" maxlength="120" placeholder="Например: Начало охоты">
-  <label for="adminUrl">HLS URL (.m3u8)</label><input class="field" id="adminUrl" type="url" placeholder="https://example.com/episode.m3u8">
-  <div class="row"><button id="adminSave" type="button">Сохранить источник</button><button class="secondary" id="adminReload" type="button">Обновить список</button></div>
-  <div style="border-top:1px solid #3a2d4d;margin-top:18px;padding-top:16px"><h4>Пакетное добавление серий</h4><p class="muted">Выбери аниме и сезон выше, затем вставь серии по одной на строку в формате: номер | название | HTTPS-ссылка .m3u8. Название можно не указывать. Уже существующие серии будут пропущены, а не перезаписаны.</p><textarea class="field" id="adminBulkEpisodes" rows="7" placeholder="1 | Начало охоты | https://example.com/episode1.m3u8&#10;2 | Новый противник | https://example.com/episode2.m3u8&#10;3 | https://example.com/episode3.m3u8"></textarea><div class="row"><button type="button" id="adminBulkSave">Добавить серии списком</button></div><p class="muted" id="adminBulkMessage" role="status"></p><div class="muted" id="adminBulkResults"></div></div>
-  <p id="adminMessage" class="muted" role="status"></p>
-</div>
-<div class="panel" id="bunnyUploadPanel"><h3>Загрузка видео в Bunny Stream</h3><p class="muted">Загружай только собственные видео или материалы, на распространение которых у тебя есть права. Bunny обработает ролик и создаст HLS-поток для выбранной серии.</p><label for="bunnyVideoFile">Видеофайл</label><input class="field" id="bunnyVideoFile" type="file" accept="video/*"><div class="row"><button type="button" id="bunnyUploadButton">Загрузить видео в Bunny</button></div><div class="profile-stat" style="margin-top:12px"><strong id="bunnyUploadPercent">0%</strong><span id="bunnyUploadStatus">Ожидает файл</span></div><div style="height:8px;background:#30253e;border-radius:99px;overflow:hidden;margin-top:8px"><div id="bunnyUploadProgress" style="height:100%;width:0%;background:#a855f7;transition:width .2s"></div></div><p class="muted" id="bunnyUploadMessage" role="status"></p></div>
-<div class="panel"><h3>Добавленные источники</h3><div class="row" style="gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px"><button class="secondary" type="button" id="adminCheckAllStreams">Проверить все потоки</button><span class="muted" id="adminCheckAllStatus" role="status">Проверка доступности всех добавленных HLS-источников</span></div><div id="adminStreams" class="muted">Загрузка...</div></div>
+  <details class="admin-advanced"><summary>Заменить постер существующего аниме</summary><label for="posterAnimeSelect">Аниме</label><select class="field" id="posterAnimeSelect"></select><label for="existingPosterFile">Файл постера</label><input class="field" id="existingPosterFile" type="file" accept="image/jpeg,image/png,image/webp"><img id="existingPosterPreview" class="hidden" alt="Предпросмотр нового постера" style="max-width:150px;max-height:220px;object-fit:cover;border-radius:12px;margin:8px 0"><div class="row"><button type="button" id="updateExistingPoster">Загрузить и заменить постер</button></div><p class="muted" id="existingPosterMessage" role="status"></p></details>
+ </div>
+ <div class="panel" id="admin-tools">
+  <h3>Дополнительные инструменты</h3>
+  <details class="admin-advanced"><summary>Пакетное добавление серий по HLS-ссылкам</summary><p class="muted">Одна серия на строку: номер | название | HTTPS-ссылка .m3u8. Уже существующие серии будут пропущены.</p><textarea class="field" id="adminBulkEpisodes" rows="5" placeholder="1 | Начало охоты | https://example.com/episode1.m3u8&#10;2 | Новый противник | https://example.com/episode2.m3u8"></textarea><div class="row"><button type="button" id="adminBulkSave">Добавить серии списком</button></div><p class="muted" id="adminBulkMessage" role="status"></p><div id="adminBulkResults" class="muted"></div></details>
+  <details class="admin-advanced"><summary>Пакетная загрузка постеров</summary><p class="muted">Названия файлов должны совпадать с названиями аниме.</p><input class="field" id="batchPosterFiles" type="file" accept="image/jpeg,image/png,image/webp" multiple><div class="row"><button type="button" id="batchPosterUpload">Загрузить выбранные постеры</button></div><p class="muted" id="batchPosterMessage" role="status"></p><div id="batchPosterResults" class="muted"></div></details>
+ </div>
 </section>
 <section id="premium" class="page hidden">
 <div class="section-head"><h2>AniWave Premium</h2></div><p class="muted">Выбери план, который подходит именно тебе. Цены демонстрационные, оплата не подключена.</p><div class="plan-grid">
