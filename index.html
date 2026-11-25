@@ -305,7 +305,7 @@ function renderWatch(){
  document.getElementById("detailSeasonCount").textContent=String(seasonTotal);document.getElementById("detailEpisodeCount").textContent=String(allEpisodeTotal||"—");
  refreshContinueCard();
  document.getElementById("episodeLabel").textContent="Сезон "+selectedSeason+" · Серия "+episode+(currentData?.title?" — "+currentData.title:"");
- document.getElementById("episodes").innerHTML=episodeNumbers.map(n=>'<button class="'+(episode===n?'selected':'')+'" onclick="episode='+n+';renderWatch();awLoadEpisode()">'+n+'</button>').join("");
+ document.getElementById("episodes").innerHTML=episodeNumbers.map(n=>{const data=getEpisodeData(currentAnime.name,selectedSeason,n);const label=data?.title?escapeHTML(data.title):"Серия "+n;return '<button class="'+(episode===n?'selected':'')+'" title="'+escapeHTML("Серия "+n+" — "+label)+'" onclick="episode='+n+';renderWatch();awLoadEpisode()"><span class="episode-number">'+n+'</span><span class="episode-title">'+label+'</span></button>'}).join("");
  renderEpisodeComments();
  document.getElementById("favButton").textContent=favorites.includes(currentAnime.name)?"♥ В избранном":"♡ В избранное";
  if(document.getElementById("awVideo"))awLoadEpisode();
