@@ -15,13 +15,14 @@ main{max-width:1100px;margin:auto;padding:12px 22px 60px}.hero{min-height:330px;
 .section-head{display:flex;align-items:center;justify-content:space-between;margin:34px 0 15px}.section-head h2{margin:0;font-size:24px}.search{width:100%;max-width:360px;background:#171329;border:1px solid #3b3153;color:white;border-radius:12px;padding:12px 14px;outline:none}.filters{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}.filters button{padding:8px 13px;background:#201b30;color:#c9c1d9}.filters button.active{background:var(--purple);color:white}
 .grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:14px}.anime-card{background:#151222;border:1px solid #2d2640;border-radius:16px;overflow:hidden;cursor:pointer;transition:.2s}.anime-card:hover{transform:translateY(-4px);border-color:#8b5cf6}.poster{height:270px;aspect-ratio:2/3;background:linear-gradient(145deg,#35205d,#111827);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}.poster img{width:100%;height:100%;object-fit:cover;transition:transform .35s ease}.anime-card:hover .poster img{transform:scale(1.06)}.poster:after{content:"";position:absolute;inset:45% 0 0;background:linear-gradient(transparent,rgba(8,6,18,.35));pointer-events:none}.poster-fallback{font-size:52px;color:#c4b5fd;place-items:center;width:100%;height:100%}.poster-quality,.poster-score{position:absolute;z-index:2;top:10px;border-radius:8px;padding:5px 8px;font-size:11px;font-weight:800;background:rgba(20,13,40,.88);backdrop-filter:blur(8px)}.poster-quality{right:10px;color:#e9ddff}.poster-score{left:10px;color:#f3c5ff;background:rgba(104,42,190,.9)}.card-info{padding:13px}.card-info strong{display:block;margin-bottom:6px;min-height:20px}.meta{color:var(--muted);font-size:12px}.rating{color:#fbbf24;float:right}
 .panel{background:var(--panel);border:1px solid #332b48;border-radius:20px;padding:22px;margin-top:20px}.hidden{display:none!important}.player{aspect-ratio:16/9;background:radial-gradient(circle at center,#35205d,#090914 70%);border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;border:1px solid #44345e}.play-icon{font-size:54px;color:#c4b5fd}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.detail-hero{position:relative;min-height:390px;border:1px solid #44345e;border-radius:24px;overflow:hidden;display:flex;align-items:center;padding:34px;isolation:isolate;background:#100d1c}.detail-backdrop{position:absolute;inset:0;background-size:cover;background-position:center 35%;z-index:-1;opacity:.95}.detail-content{max-width:650px;position:relative;z-index:1}.detail-content h1{font-size:clamp(34px,5vw,54px);line-height:1.05;margin:16px 0 12px}.detail-tags{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}.detail-tags span{font-size:12px;color:#eee7ff;background:rgba(48,35,75,.82);border:1px solid rgba(196,181,253,.2);border-radius:20px;padding:7px 11px}.detail-tags span:nth-child(3){color:#ffd66b}.detail-description{max-width:540px;color:#ded7ec;line-height:1.7}.detail-poster{position:absolute;right:6%;top:50%;transform:translateY(-50%);width:190px;height:285px;border:1px solid rgba(255,255,255,.22);border-radius:16px;overflow:hidden;box-shadow:0 18px 60px #0009}.detail-poster img{width:100%;height:100%;object-fit:cover}.detail-section-head{display:flex;justify-content:space-between;align-items:end;gap:16px;margin:34px 0 14px}.detail-section-head h2{margin:7px 0 0}.detail-section-head .meta{padding-bottom:5px}.player{margin-top:14px}.episodes{display:grid;grid-template-columns:repeat(8,1fr);gap:8px;margin-top:14px}.episodes button{background:#28223a}.episodes button.selected{background:var(--purple)}.plan-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.plan{background:#171329;border:1px solid #39304e;border-radius:18px;padding:20px}.plan.featured{border:2px solid #9b75ff;background:#211738}.price{font-size:30px;font-weight:900;margin:12px 0}.plan li{color:#d1cbdc;margin:9px 0}.field{width:100%;background:#0e0c18;color:white;border:1px solid #433858;padding:12px;border-radius:10px;margin:7px 0 14px}
+.aw-player{background:#070610;border:1px solid #44345e;border-radius:18px;overflow:hidden;margin-top:14px;box-shadow:0 18px 55px #0007}.aw-video-wrap{position:relative;background:#000;aspect-ratio:16/9}.aw-video-wrap video{width:100%;height:100%;display:block;background:#000}.aw-player-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;background:linear-gradient(0deg,#09091488,transparent 30%,transparent 70%,#09091455)}.aw-player-message{background:#171329dd;border:1px solid #6b4aa2;border-radius:14px;padding:18px 22px;text-align:center;max-width:90%;pointer-events:auto}.aw-player-message strong{display:block;margin-bottom:7px}.aw-controls{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:12px;background:#151122}.aw-controls button,.aw-controls select{background:#29223b;color:#f4edff;border:1px solid #493b68;border-radius:9px;padding:9px 12px}.aw-controls input[type=range]{flex:1;min-width:100px;accent-color:#9b75ff}.aw-controls select{max-width:145px}.aw-status{color:#c4b5fd;font-size:12px;padding:0 14px 12px;background:#151122}.aw-player .hidden{display:none!important}
 footer{text-align:center;color:#777184;padding:30px 10px;font-size:12px}
 @media(max-width:980px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:760px){.detail-hero{min-height:540px;align-items:flex-end;padding:22px}.detail-poster{width:112px;height:168px;right:20px;top:20px;transform:none}.detail-content{padding-top:180px}.detail-section-head{align-items:flex-start;flex-direction:column;gap:4px}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.poster{height:230px}header{align-items:flex-start;flex-direction:column}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.poster{height:200px}.hero{min-height:300px;padding:24px}.plan-grid{grid-template-columns:1fr}.episodes{grid-template-columns:repeat(5,1fr)}.section-head{align-items:flex-start;flex-direction:column;gap:12px}.search{max-width:none}}
 </style>
 </head>
 <body>
 <header><div class="logo">Ani<span>Wave</span></div><nav id="nav">
-<button data-page="home" class="active">Главная</button><button data-page="catalog">Каталог</button><button data-page="watch">Смотреть</button><button data-page="freeAnime">Бесплатно</button><button data-page="profile">Профиль</button><button data-page="premium">Premium</button>
+<button data-page="home" class="active">Главная</button><button data-page="catalog">Каталог</button><button data-page="watch">Смотреть</button><button data-page="profile">Профиль</button><button data-page="premium">Premium</button>
 </nav></header>
 <main>
 <section id="home" class="page">
@@ -46,20 +47,24 @@ footer{text-align:center;color:#777184;padding:30px 10px;font-size:12px}
 <div class="detail-section-head"><div><div class="eyebrow">СМОТРИ В СВОЁМ ТЕМПЕ</div><h2>Список серий</h2></div><span class="meta">Сезон 1 · 12 серий в демо-каталоге</span></div>
 <div class="panel" id="playerSection">
   <div class="row" style="justify-content:space-between"><strong id="episodeLabel">Сезон 1 · Серия 1</strong><span class="meta">AniWave Player</span></div>
-  <div class="player"><div class="play-icon">▶</div><strong>Видео пока не подключено</strong><span class="muted">Здесь появится воспроизведение из лицензированного источника.</span><span class="meta">Демонстрационная страница просмотра</span></div>
+  <div class="aw-player" id="awPlayer">
+  <div class="aw-video-wrap">
+    <video id="awVideo" playsinline preload="metadata"></video>
+    <div class="aw-player-overlay" id="awOverlay"><div class="aw-player-message"><strong id="awMessageTitle">AniWave Player</strong><span class="muted" id="awMessage">Для этой серии пока не добавлен лицензированный HLS-поток.</span></div></div>
+  </div>
+  <div class="aw-controls">
+    <button type="button" id="awPlay">▶ Играть</button>
+    <button type="button" id="awBack">−10 сек</button>
+    <button type="button" id="awForward">+10 сек</button>
+    <span class="meta" id="awTime">0:00 / 0:00</span>
+    <input id="awSeek" type="range" min="0" max="1000" value="0" aria-label="Перемотка">
+    <select id="awQuality" aria-label="Качество"><option value="-1">Авто</option></select>
+    <button type="button" id="awFullscreen">⛶</button>
+  </div>
+  <div class="aw-status" id="awStatus">Ожидает HLS-источник (.m3u8)</div>
+</div>
   <div class="row" style="justify-content:space-between;margin-top:14px"><button class="secondary" onclick="changeEpisode(-1)">← Предыдущая</button><button onclick="changeEpisode(1)">Следующая →</button></div>
   <div class="episodes" id="episodes"></div>
-</div>
-</section>
-<section id="freeAnime" class="page hidden">
-<div class="section-head"><h2>Бесплатное аниме</h2></div>
-<p class="muted">Официальные плейлисты Anime! on TMS — серии встроены с YouTube. Доступность отдельных видео зависит от региона и настроек правообладателя.</p>
-<div class="panel">
-<div class="row" style="justify-content:space-between;margin-bottom:12px"><strong id="officialAnimeTitle">GOD MARS — серия 64 · официальный канал</strong><a class="meta" id="officialAnimeLink" href="https://www.youtube.com/watch?v=-q8DilfLfj0" target="_blank" rel="noopener">Открыть на YouTube ↗</a></div>
-<div style="position:relative;width:100%;aspect-ratio:16/9;background:#090914;border-radius:14px;overflow:hidden">
-<iframe id="officialAnimePlayer" src="https://www.youtube-nocookie.com/embed/-q8DilfLfj0" title="GOD MARS Episode 64 — официальный ролик Anime! on TMS" style="position:absolute;inset:0;width:100%;height:100%;border:0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-</div>
-<p class="meta">Источник: Anime! on TMS Official Channel. Это конкретный официальный ролик; если встраивание запрещено, открой его на YouTube.</p>
 </div>
 </section>
 <section id="profile" class="page hidden">
@@ -76,6 +81,7 @@ footer{text-align:center;color:#777184;padding:30px 10px;font-size:12px}
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
 <script>
 const anime=[
 {name:"Соло-левелинг",genre:"Экшен",year:"2024",rating:"8.9",emoji:"⚔️",img:"https://image.tmdb.org/t/p/w500/lheS6E8JKFLdan3qU8xRQvutCQj.jpg",desc:"Сон Джин-у получает уникальную способность становиться сильнее после каждого испытания."},
@@ -105,7 +111,7 @@ function renderCatalog(){let q=(document.getElementById("search")?.value||"").to
 function renderHome(){document.getElementById("homeGrid").innerHTML=anime.slice(0,4).map(card).join("")}
 function go(page){document.querySelectorAll(".page").forEach(x=>x.classList.add("hidden"));document.getElementById(page).classList.remove("hidden");document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("active",x.dataset.page===page));if(page==="catalog")renderCatalog();if(page==="profile")renderProfile();window.scrollTo({top:0,behavior:"smooth"})}
 function openAnime(name){currentAnime=anime.find(a=>a.name===name)||anime[0];episode=1;document.getElementById("watchTitle").textContent=currentAnime.name;document.getElementById("watchDesc").textContent=currentAnime.desc;document.getElementById("detailGenre").textContent=currentAnime.genre;document.getElementById("detailYear").textContent=currentAnime.year;document.getElementById("detailRating").textContent="★ "+currentAnime.rating;document.getElementById("detailPoster").src=currentAnime.img;document.getElementById("detailPoster").alt="Постер: "+currentAnime.name;document.getElementById("detailBackdrop").style.backgroundImage="linear-gradient(90deg,rgba(9,9,20,.98),rgba(9,9,20,.82) 48%,rgba(9,9,20,.18)),url('"+currentAnime.img+"')";renderWatch();go("watch")}
-function renderWatch(){document.getElementById("episodeLabel").textContent=`Сезон 1 · Серия ${episode}`;document.getElementById("episodes").innerHTML=Array.from({length:12},(_,i)=>`<button class="${episode===i+1?"selected":""}" onclick="episode=${i+1};renderWatch()">${i+1}</button>`).join("");document.getElementById("favButton").textContent=favorites.includes(currentAnime.name)?"♥ В избранном":"♡ В избранное"}
+function renderWatch(){document.getElementById("episodeLabel").textContent=`Сезон 1 · Серия ${episode}`;document.getElementById("episodes").innerHTML=Array.from({length:12},(_,i)=>`<button class="${episode===i+1?"selected":""}" onclick="episode=${i+1};renderWatch();awLoadEpisode()">${i+1}</button>`).join("");document.getElementById("favButton").textContent=favorites.includes(currentAnime.name)?"♥ В избранном":"♡ В избранное";if(document.getElementById("awVideo"))awLoadEpisode()}
 function changeEpisode(n){episode=Math.max(1,Math.min(12,episode+n));renderWatch()}
 async function toggleFavorite(){
  if(!user){go("profile");document.getElementById("loginMessage").textContent="Войди, чтобы сохранять избранное.";return}
@@ -149,17 +155,55 @@ function initAuth(){
   renderProfile();renderWatch();
  });
 }
+// Add only HLS URLs that you own or are licensed to stream. Leave empty until a source is approved.
+const HLS_SOURCES = {
+ "Соло-левелинг": {},
+ "Атака титанов": {},
+ "Клинок, рассекающий демонов": {},
+ "Магическая битва": {},
+ "Человек-бензопила": {},
+ "Ванпанчмен": {},
+ "Твоё имя": {},
+ "Форма голоса": {},
+ "Ван-Пис": {}
+};
+let awHls=null;
+const awVideo=()=>document.getElementById("awVideo");
+function awFormatTime(value){if(!Number.isFinite(value))return "0:00";const m=Math.floor(value/60),s=Math.floor(value%60);return m+":"+String(s).padStart(2,"0")}
+function awSetMessage(title,message){document.getElementById("awMessageTitle").textContent=title;document.getElementById("awMessage").textContent=message;document.getElementById("awOverlay").classList.remove("hidden")}
+function awHideMessage(){document.getElementById("awOverlay").classList.add("hidden")}
+function awProgressKey(){return "aniwave-progress-"+currentAnime.name+"-"+episode}
+function awSaveProgress(){const v=awVideo();if(v&&Number.isFinite(v.currentTime))localStorage.setItem(awProgressKey(),JSON.stringify({time:v.currentTime,duration:v.duration||0}));}
+function awLoadEpisode(){
+ const v=awVideo(), source=HLS_SOURCES[currentAnime.name]?.[episode]||"";
+ if(awHls){awHls.destroy();awHls=null}
+ v.pause();v.removeAttribute("src");v.load();
+ document.getElementById("awQuality").innerHTML='<option value="-1">Авто</option>';
+ document.getElementById("awPlay").textContent="▶ Играть";
+ if(!source){awSetMessage("AniWave Player","Для этой серии пока не добавлен лицензированный HLS-поток.");document.getElementById("awStatus").textContent="Нет источника · ожидается URL .m3u8";return}
+ if(!/^https:\/\//i.test(source)||!source.includes(".m3u8")){awSetMessage("Источник не настроен","Укажи действительный HTTPS HLS URL (.m3u8) в HLS_SOURCES.");return}
+ document.getElementById("awStatus").textContent="Подключаем HLS-поток…";
+ if(window.Hls&&Hls.isSupported()){
+  awHls=new Hls({enableWorker:true});awHls.loadSource(source);awHls.attachMedia(v);
+  awHls.on(Hls.Events.MANIFEST_PARSED,()=>{awHls.levels.forEach((level,i)=>{const o=document.createElement("option");o.value=String(i);o.textContent=(level.height?level.height+"p":"Уровень "+(i+1));document.getElementById("awQuality").appendChild(o)});document.getElementById("awStatus").textContent="HLS подключён · выбери качество и нажми Играть";});
+  awHls.on(Hls.Events.ERROR,(_event,data)=>{if(data.fatal){document.getElementById("awStatus").textContent="Ошибка HLS: "+data.details;awSetMessage("Не удалось загрузить видео","Проверь URL потока, CORS и доступность источника.");}});
+ }else if(v.canPlayType("application/vnd.apple.mpegurl")){v.src=source;v.addEventListener("loadedmetadata",()=>document.getElementById("awStatus").textContent="HLS подключён", {once:true})}
+ else{awSetMessage("HLS не поддерживается","Попробуй обновить браузер или открыть сайт в современном браузере.");}
+ try{const saved=JSON.parse(localStorage.getItem(awProgressKey())||"null");if(saved?.time>0)v.addEventListener("loadedmetadata",()=>{if(saved.time<(v.duration||Infinity)-5)v.currentTime=saved.time},{once:true})}catch(_e){}
+}
+document.getElementById("awPlay").addEventListener("click",async()=>{const v=awVideo();if(v.paused){try{await v.play();awHideMessage();document.getElementById("awPlay").textContent="Ⅱ Пауза"}catch(_e){awSetMessage("Видео пока не готово","Сначала подключи действительный HLS-источник для этой серии.")}}else{v.pause();document.getElementById("awPlay").textContent="▶ Играть"}});
+document.getElementById("awBack").addEventListener("click",()=>awVideo().currentTime=Math.max(0,awVideo().currentTime-10));
+document.getElementById("awForward").addEventListener("click",()=>awVideo().currentTime=Math.min(awVideo().duration||Infinity,awVideo().currentTime+10));
+document.getElementById("awFullscreen").addEventListener("click",()=>{const p=document.getElementById("awPlayer");if(document.fullscreenElement)document.exitFullscreen?.();else p.requestFullscreen?.()});
+document.getElementById("awQuality").addEventListener("change",e=>{if(awHls)awHls.currentLevel=Number(e.target.value)});
+document.getElementById("awSeek").addEventListener("input",e=>{const v=awVideo();if(Number.isFinite(v.duration))v.currentTime=(Number(e.target.value)/1000)*v.duration});
+awVideo().addEventListener("timeupdate",()=>{const v=awVideo();document.getElementById("awTime").textContent=awFormatTime(v.currentTime)+" / "+awFormatTime(v.duration);document.getElementById("awSeek").value=v.duration?String(Math.round(v.currentTime/v.duration*1000)):"0";if(Math.floor(v.currentTime)%5===0)awSaveProgress()});
+awVideo().addEventListener("ended",()=>{awSaveProgress();document.getElementById("awPlay").textContent="▶ Играть"});
+window.addEventListener("beforeunload",awSaveProgress);
 function selectPlan(name){document.getElementById("planMessage").textContent=`Выбран план ${name}. Для оплаты нужно подключить платёжный сервис и серверную проверку подписки.`}
 document.querySelectorAll("#filters button").forEach(b=>b.addEventListener("click",()=>{currentFilter=b.dataset.filter;document.querySelectorAll("#filters button").forEach(x=>x.classList.toggle("active",x===b));renderCatalog()}));
 document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>go(b.dataset.page)));
-document.querySelectorAll("#officialAnimeChoices button").forEach(b=>b.addEventListener("click",()=>{
- const list=b.dataset.playlist;
- const names={"PLj2Ugc-vxcWGDWFMIlD5i-gz3u2s4tMa-":"GOD MARS","PLj2Ugc-vxcWHnPJDXLZMmBqVm37XnI06x":"We Rent Tsukumogami","PLj2Ugc-vxcWG_zTnv_Bzlo_T9tG2xDmzD":"The Gutsy Frog"};
- document.querySelectorAll("#officialAnimeChoices button").forEach(x=>x.classList.toggle("active",x===b));
- document.getElementById("officialAnimeTitle").textContent=names[list]+" — официальные серии";
- document.getElementById("officialAnimePlayer").src="https://www.youtube-nocookie.com/embed?listType=playlist&list="+list;
- document.getElementById("officialAnimeLink").href="https://www.youtube.com/playlist?list="+list;
-}));
+
 renderHome();renderCatalog();renderWatch();initAuth();
 </script>
 </body></html>
