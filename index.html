@@ -157,7 +157,7 @@ function initAuth(){
 }
 // Add only HLS URLs that you own or are licensed to stream. Leave empty until a source is approved.
 const HLS_SOURCES = {
- "Соло-левелинг": {},
+ "Соло-левелинг": {1:"https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"},
  "Атака титанов": {},
  "Клинок, рассекающий демонов": {},
  "Магическая битва": {},
@@ -181,13 +181,14 @@ function awLoadEpisode(){
  document.getElementById("awQuality").innerHTML='<option value="-1">Авто</option>';
  document.getElementById("awPlay").textContent="▶ Играть";
  if(!source){awSetMessage("AniWave Player","Для этой серии пока не добавлен лицензированный HLS-поток.");document.getElementById("awStatus").textContent="Нет источника · ожидается URL .m3u8";return}
+ if(currentAnime.name==="Соло-левелинг"&&episode===1){document.getElementById("awMessageTitle").textContent="Демо HLS · Big Buck Bunny";document.getElementById("awMessage").textContent="Тестовый ролик для проверки плеера, не серия аниме.";}
  if(!/^https:\/\//i.test(source)||!source.includes(".m3u8")){awSetMessage("Источник не настроен","Укажи действительный HTTPS HLS URL (.m3u8) в HLS_SOURCES.");return}
  document.getElementById("awStatus").textContent="Подключаем HLS-поток…";
  if(window.Hls&&Hls.isSupported()){
   awHls=new Hls({enableWorker:true});awHls.loadSource(source);awHls.attachMedia(v);
-  awHls.on(Hls.Events.MANIFEST_PARSED,()=>{awHls.levels.forEach((level,i)=>{const o=document.createElement("option");o.value=String(i);o.textContent=(level.height?level.height+"p":"Уровень "+(i+1));document.getElementById("awQuality").appendChild(o)});document.getElementById("awStatus").textContent="HLS подключён · выбери качество и нажми Играть";});
+  awHls.on(Hls.Events.MANIFEST_PARSED,()=>{awHls.levels.forEach((level,i)=>{const o=document.createElement("option");o.value=String(i);o.textContent=(level.height?level.height+"p":"Уровень "+(i+1));document.getElementById("awQuality").appendChild(o)});document.getElementById("awStatus").textContent="Демо HLS подключён · Big Buck Bunny · тест плеера, не серия аниме";});
   awHls.on(Hls.Events.ERROR,(_event,data)=>{if(data.fatal){document.getElementById("awStatus").textContent="Ошибка HLS: "+data.details;awSetMessage("Не удалось загрузить видео","Проверь URL потока, CORS и доступность источника.");}});
- }else if(v.canPlayType("application/vnd.apple.mpegurl")){v.src=source;v.addEventListener("loadedmetadata",()=>document.getElementById("awStatus").textContent="HLS подключён", {once:true})}
+ }else if(v.canPlayType("application/vnd.apple.mpegurl")){v.src=source;v.addEventListener("loadedmetadata",()=>document.getElementById("awStatus").textContent="Демо HLS подключён · тестовый ролик, не серия аниме", {once:true})}
  else{awSetMessage("HLS не поддерживается","Попробуй обновить браузер или открыть сайт в современном браузере.");}
  try{const saved=JSON.parse(localStorage.getItem(awProgressKey())||"null");if(saved?.time>0)v.addEventListener("loadedmetadata",()=>{if(saved.time<(v.duration||Infinity)-5)v.currentTime=saved.time},{once:true})}catch(_e){}
 }
