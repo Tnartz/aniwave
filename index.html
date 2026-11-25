@@ -860,6 +860,11 @@ async function deleteAnimeSeason(animeTitle,season){
  try{
   const snapshot=await db.collection("streams").where("animeTitle","==",animeTitle).get();
   const docs=snapshot.docs.filter(doc=>{const data=doc.data();const docSeason=Number.isInteger(data.season)&&data.season>0?data.season:1;return docSeason===season;});
+  const bunnyLinked=docs.filter(doc=>!!doc.data().bunnyVideoId);
+  if(bunnyLinked.length){
+   message.textContent="Сезон не удалён: в нём есть "+bunnyLinked.length+" видео из Bunny Stream. Сначала отвяжи эти видео в менеджере видеотеки. Сами ролики останутся в Bunny.";
+   return;
+  }
   for(let i=0;i<docs.length;i+=450){
    const batch=db.batch();docs.slice(i,i+450).forEach(doc=>batch.delete(doc.ref));await batch.commit();
   }
@@ -1252,7 +1257,13 @@ async function deleteStream(animeTitle,season,ep){
  if(!user||!isAdmin)return;
  try{
   const id=encodeURIComponent(animeTitle)+"_s"+season+"_e"+ep;
-  await db.collection("streams").doc(id).delete();
+  const streamRef=db.collection("streams").doc(id);
+  const streamSnap=await streamRef.get();
+  if(streamSnap.exists&&streamSnap.data().bunnyVideoId){
+   document.getElementById("adminMessage").textContent="Серия не удалена: к ней привязано видео Bunny Stream. Сначала отвяжи его в менеджере видеотеки. Сам ролик останется в Bunny.";
+   return;
+  }
+  await streamRef.delete();
   if(EPISODE_CATALOG[animeTitle]?.[season])delete EPISODE_CATALOG[animeTitle][season][ep];
   if(season===1&&HLS_SOURCES[animeTitle])delete HLS_SOURCES[animeTitle][ep];
   document.getElementById("adminMessage").textContent="Серия удалена.";
