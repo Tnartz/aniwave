@@ -532,7 +532,7 @@ async function loadStreams(){
    const season=Number.isInteger(data.season)&&data.season>0?data.season:1;
    if(!EPISODE_CATALOG[data.animeTitle])EPISODE_CATALOG[data.animeTitle]={};
    if(!EPISODE_CATALOG[data.animeTitle][season])EPISODE_CATALOG[data.animeTitle][season]={};
-   EPISODE_CATALOG[data.animeTitle][season][data.episode]={url:data.url,title:data.title||""};
+   EPISODE_CATALOG[data.animeTitle][season][data.episode]={url:data.url,title:data.title||"",lastCheckStatus:data.lastCheckStatus||"",lastCheckMessage:data.lastCheckMessage||"",lastCheckAt:data.lastCheckAt||null};
    if(season===1){if(!HLS_SOURCES[data.animeTitle])HLS_SOURCES[data.animeTitle]={};HLS_SOURCES[data.animeTitle][data.episode]=data.url}
   });
   if(isAdmin&&document.getElementById("adminStreams"))renderAdmin();
@@ -662,7 +662,7 @@ function renderAdmin(){
  });
  Object.keys(EPISODE_CATALOG).forEach(name=>Object.keys(EPISODE_CATALOG[name]||{}).forEach(season=>Object.keys(EPISODE_CATALOG[name][season]||{}).forEach(ep=>{
   const item=EPISODE_CATALOG[name][season][ep];
-  rows.push('<div style="border-bottom:1px solid #332b48;padding:12px 0"><div class="muted" style="margin-bottom:7px">'+escapeHTML(name)+' · сезон '+season+' · серия '+ep+'</div><div class="row" style="gap:7px;flex-wrap:wrap"><input class="field" style="flex:1;min-width:120px" type="number" min="1" max="999" value="'+ep+'" aria-label="Новый номер серии" data-edit-episode-number="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'"><input class="field" style="flex:2;min-width:150px" maxlength="120" placeholder="Название серии" value="'+escapeHTML(item.title||'')+'" aria-label="Название серии" data-edit-episode-title="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'"><select class="field" style="max-width:145px" aria-label="Перенести в сезон" data-move-season="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'"></select><button class="secondary" type="button" data-move-episode="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'">Перенести</button><button class="secondary" type="button" data-save-episode="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'">Сохранить</button><button class="secondary" type="button" data-delete-stream="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'">Удалить</button><input class="field" style="flex:1 1 100%;min-width:220px" type="url" value="'+escapeHTML(item.url||'')+'" aria-label="HLS ссылка" data-edit-stream-url="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'"><button class="secondary" type="button" data-check-stream="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'">Проверить поток</button><button class="secondary" type="button" data-save-stream-url="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'">Сохранить ссылку</button><span class="review-meta" data-stream-status="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'"></span></div></div>');
+  rows.push('<div style="border-bottom:1px solid #332b48;padding:12px 0"><div class="muted" style="margin-bottom:7px">'+escapeHTML(name)+' · сезон '+season+' · серия '+ep+'</div><div class="row" style="gap:7px;flex-wrap:wrap"><input class="field" style="flex:1;min-width:120px" type="number" min="1" max="999" value="'+ep+'" aria-label="Новый номер серии" data-edit-episode-number="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'"><input class="field" style="flex:2;min-width:150px" maxlength="120" placeholder="Название серии" value="'+escapeHTML(item.title||'')+'" aria-label="Название серии" data-edit-episode-title="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'"><select class="field" style="max-width:145px" aria-label="Перенести в сезон" data-move-season="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'"></select><button class="secondary" type="button" data-move-episode="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'">Перенести</button><button class="secondary" type="button" data-save-episode="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'">Сохранить</button><button class="secondary" type="button" data-delete-stream="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'">Удалить</button><input class="field" style="flex:1 1 100%;min-width:220px" type="url" value="'+escapeHTML(item.url||'')+'" aria-label="HLS ссылка" data-edit-stream-url="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'"><button class="secondary" type="button" data-check-stream="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'">Проверить поток</button><button class="secondary" type="button" data-save-stream-url="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'">Сохранить ссылку</button><span class="review-meta" data-stream-status="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'">'+(item.lastCheckAt?('Последняя проверка: '+escapeHTML(item.lastCheckStatus||"—")+' · '+escapeHTML(new Date(item.lastCheckAt.seconds?item.lastCheckAt.seconds*1000:item.lastCheckAt).toLocaleString("ru-RU"))):'Проверок ещё не было')+'</span></div></div>');
  })));
  list.innerHTML=rows.join("")||"Пока нет добавленных источников.";
  const checkAllButton=document.getElementById("adminCheckAllStreams");if(checkAllButton)checkAllButton.onclick=checkAllStreamUrls;
@@ -818,35 +818,38 @@ async function checkStreamUrl(animeTitle,season,ep,button){
  const key=encodeURIComponent(animeTitle),input=document.querySelector('[data-edit-stream-url="'+key+'"][data-season="'+season+'"][data-episode="'+ep+'"]'),status=document.querySelector('[data-stream-status="'+key+'"][data-season="'+season+'"][data-episode="'+ep+'"]'),url=(input?.value||"").trim();
  if(!/^https:\/\//i.test(url)||!/\.m3u8(\?|#|$)/i.test(url)){if(status)status.textContent="⚠ Нужна HTTPS-ссылка на .m3u8";return}
  const original=button.textContent;button.disabled=true;button.textContent="Проверяем…";if(status)status.textContent="Подключаемся к HLS-плейлисту…";
+ let result="?",message="";
  const request=async(target)=>{const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);try{return await fetch(target,{method:"GET",headers:{Range:"bytes=0-4095"},cache:"no-store",signal:controller.signal})}finally{clearTimeout(timer)}};
  try{
   const response=await request(url);
   if(!response.ok&&response.status!==206)throw new Error("Сервер ответил HTTP "+response.status);
   const body=(await response.text()).trim();
   if(!body.startsWith("#EXTM3U"))throw new Error("Сервер ответил, но файл не является HLS-плейлистом: нет #EXTM3U");
-  const lines=body.split(/\r?\n/).map(line=>line.trim()).filter(Boolean);
-  const master=lines.some(line=>line.startsWith("#EXT-X-STREAM-INF"));
-  const marker=master?"#EXT-X-STREAM-INF":"#EXTINF";
-  const markerIndex=lines.findIndex(line=>line.startsWith(marker));
-  const child=markerIndex>=0?lines.slice(markerIndex+1).find(line=>line&&!line.startsWith("#")):null;
+  const lines=body.split(/\r?\n/).map(line=>line.trim()).filter(Boolean),master=lines.some(line=>line.startsWith("#EXT-X-STREAM-INF"));
+  const marker=master?"#EXT-X-STREAM-INF":"#EXTINF",markerIndex=lines.findIndex(line=>line.startsWith(marker)),child=markerIndex>=0?lines.slice(markerIndex+1).find(line=>line&&!line.startsWith("#")):null;
   if(master&&child){
-   const childUrl=new URL(child,url).href,variant=await request(childUrl);
+   const variant=await request(new URL(child,url).href);
    if(!variant.ok&&variant.status!==206)throw new Error("Основной плейлист доступен, но вариант качества недоступен: HTTP "+variant.status);
    const variantBody=(await variant.text()).trim();
    if(!variantBody.startsWith("#EXTM3U"))throw new Error("Основной плейлист доступен, но ссылка на вариант качества ведёт не на HLS");
-   const variantLines=variantBody.split(/\r?\n/).map(line=>line.trim()).filter(Boolean);
-   const hasSegments=variantLines.some(line=>line.startsWith("#EXTINF"));
-   if(status)status.textContent="✓ HLS исправен · master + вариант качества · HTTP "+response.status+(hasSegments?" · сегменты перечислены":"");
-  }else if(master){
-   if(status)status.textContent="✓ Master-плейлист доступен · варианты качества не удалось прочитать";
-  }else{
-   const hasSegments=lines.some(line=>line.startsWith("#EXTINF"));
-   if(status)status.textContent=hasSegments?"✓ HLS-плейлист доступен · список сегментов найден · HTTP "+response.status:"⚠ Плейлист доступен, но список сегментов не найден";
-  }
+   const hasSegments=variantBody.split(/\r?\n/).some(line=>line.trim().startsWith("#EXTINF"));
+   result="✓";message="HLS исправен · master + вариант качества · HTTP "+response.status+(hasSegments?" · сегменты перечислены":"");
+  }else if(master){result="✓";message="Master-плейлист доступен · варианты качества не удалось прочитать"}
+  else{const hasSegments=lines.some(line=>line.startsWith("#EXTINF"));result=hasSegments?"✓":"⚠";message=hasSegments?"HLS-плейлист доступен · список сегментов найден · HTTP "+response.status:"Плейлист доступен, но список сегментов не найден"}
  }catch(error){
-  const message=error.name==="AbortError"?"Превышено время ожидания (10 сек)":error.message||"Ошибка сети";
-  if(status)status.textContent=/Failed to fetch|NetworkError|Load failed/i.test(message)?"Не удалось прочитать ответ: возможна CORS-блокировка или сетевая ошибка. Это не доказывает, что видео не работает.": "✕ "+message;
- }finally{button.disabled=false;button.textContent=original}
+  const raw=error.name==="AbortError"?"Превышено время ожидания (10 сек)":error.message||"Ошибка сети";
+  if(/Failed to fetch|NetworkError|Load failed/i.test(raw)){result="?";message="Не удалось прочитать ответ: возможна CORS-блокировка или сетевая ошибка"}
+  else{result="✕";message=raw}
+ }
+ const checkedAt=new Date(),visible=result+" "+message;
+ if(status)status.textContent=visible+" · Сохранение результата…";
+ try{
+  const docId=encodeURIComponent(animeTitle)+"_s"+season+"_e"+ep;
+  await db.collection("streams").doc(docId).set({lastCheckStatus:result,lastCheckMessage:message,lastCheckAt:firebase.firestore.Timestamp.fromDate(checkedAt)},{merge:true});
+  const item=EPISODE_CATALOG[animeTitle]?.[season]?.[ep];if(item){item.lastCheckStatus=result;item.lastCheckMessage=message;item.lastCheckAt:checkedAt}
+  if(status)status.textContent=visible+" · Последняя проверка: "+checkedAt.toLocaleString("ru-RU");
+ }catch(saveError){if(status)status.textContent=visible+" · Не удалось сохранить историю: "+saveError.message}
+ finally{button.disabled=false;button.textContent=original}
 }
 
 async function saveStream(){
