@@ -239,26 +239,32 @@ const anime=[
 {name:"Тестовый ролик — Big Buck Bunny",genre:"Тест",year:"2008",rating:"—",emoji:"🐰",img:"https://vz-1db794dd-dbb.b-cdn.net/0a1096c5-c038-4feb-96ba-7f4ee14de45b/thumbnail.jpg",desc:"Демонстрационный ролик Big Buck Bunny для проверки видеоплеера AniWave. © Blender Foundation. Лицензия CC BY 3.0."}
 ];
 const LEGAL_CATALOG_LINKS={
- "Атака титанов":{platform:"Кинопоиск",url:"https://www.kinopoisk.ru/series/749374/"},
- "Семья шпиона":{platform:"Кинопоиск",url:"https://www.kinopoisk.ru/series/4686248/"},
- "Провожающая в последний путь Фрирен":{platform:"Кинопоиск",url:"https://www.kinopoisk.ru/series/5401195/"},
- "Ван-Пис":{platform:"Кинопоиск",url:"https://www.kinopoisk.ru/series/382731/"},
- "Охотник × Охотник":{platform:"Кинопоиск",url:"https://www.kinopoisk.ru/series/647602/"},
- "Токийский гуль":{platform:"Кинопоиск",url:"https://www.kinopoisk.ru/series/841681/"},
- "Стальной алхимик: Братство":{platform:"Кинопоиск",url:"https://www.kinopoisk.ru/series/452838/"},
- "Моб Психо 100":{platform:"Кинопоиск",url:"https://www.kinopoisk.ru/series/1002686/"},
- "Тетрадь смерти":{platform:"Кинопоиск",url:"https://www.kinopoisk.ru/series/406148/"},
- "Врата Штейна":{platform:"Кинопоиск",url:"https://www.kinopoisk.ru/series/586251/"},
- "Волейбол!!":{platform:"Кинопоиск",url:"https://www.kinopoisk.ru/series/840073/"},
- "Наруто":{platform:"Кинопоиск",url:"https://www.kinopoisk.ru/series/283290/"},
- "Твоё имя":{platform:"Кинопоиск",url:"https://www.kinopoisk.ru/film/958722/"},
- "Форма голоса":{platform:"Кинопоиск",url:"https://www.kinopoisk.ru/film/963343/"}
+ "Атака титанов":{status:"Требуется дополнительная проверка",url:"https://www.justwatch.com/ru/поиск?q=Атака%20титанов"},
+ "Соло-левелинг":{status:"Требуется дополнительная проверка",url:"https://www.justwatch.com/ru/поиск?q=Соло-левелинг"},
+ "Клинок, рассекающий демонов":{status:"Требуется дополнительная проверка",url:"https://www.justwatch.com/ru/поиск?q=Клинок%20рассекающий%20демонов"},
+ "Магическая битва":{status:"Не найдено в российских стримингах по данным JustWatch",url:"https://www.justwatch.com/ru/сериал/magicheskaia-bitva"},
+ "Человек-бензопила":{status:"Требуется перепроверка: найденные данные о Crunchyroll устарели",url:"https://www.justwatch.com/ru/сериал/chelovek-benzopila"},
+ "Ванпанчмен":{status:"Не найдено в российских стримингах по данным JustWatch",url:"https://www.justwatch.com/ru/сериал/vanpanchmen"},
+ "Твоё имя":{status:"Требуется дополнительная проверка",url:"https://www.justwatch.com/ru/поиск?q=Твоё%20имя"},
+ "Форма голоса":{status:"Требуется дополнительная проверка",url:"https://www.justwatch.com/ru/поиск?q=Форма%20голоса"},
+ "Ван-Пис":{status:"Не найдено в российских стримингах по данным izlebunu",url:"https://izlebunu.com/ru/series/one-piece-1999/"},
+ "Тетрадь смерти":{status:"Не найдено в российских стримингах по данным JustWatch",url:"https://www.justwatch.com/ru/сериал/tetrad-smerti"},
+ "Наруто":{status:"Требуется дополнительная проверка",url:"https://www.justwatch.com/ru/поиск?q=Наруто"},
+ "Охотник × Охотник":{status:"Требуется дополнительная проверка",url:"https://www.peremotkino.ru/anime/hxh.html"},
+ "Стальной алхимик: Братство":{status:"Не найдено в российских стримингах по данным JustWatch",url:"https://www.justwatch.com/ru/сериал/stal-noi-alkhimik-bratstvo"},
+ "Провожающая в последний путь Фрирен":{status:"Российская дата релиза не объявлена по данным JustWatch",url:"https://www.justwatch.com/ru/сериал/friren-provozhaiushchaia-v-poslednii-put"},
+ "Семья шпиона":{status:"Не найдено в российских стримингах по данным JustWatch",url:"https://www.justwatch.com/ru/сериал/sem-ia-shpiona"},
+ "Врата Штейна":{status:"Требуется дополнительная проверка",url:"https://www.justwatch.com/ru/поиск?q=Врата%20Штейна"},
+ "Волейбол!!":{status:"Требуется дополнительная проверка",url:"https://www.justwatch.com/ru/поиск?q=Волейбол"},
+ "Моб Психо 100":{status:"Требуется дополнительная проверка",url:"https://www.justwatch.com/ru/поиск?q=Моб%20Психо%20100"},
+ "Токийский гуль":{status:"Требуется дополнительная проверка",url:"https://www.justwatch.com/ru/поиск?q=Токийский%20гуль"}
 };
 function renderLegalSources(){
  const list=document.getElementById("legalSourcesList");if(!list)return;
  const source=LEGAL_CATALOG_LINKS[currentAnime?.name];
  if(!source){list.innerHTML='<div class="legal-source-card"><strong>Источник пока не подтверждён</strong><span>Для этого тайтла ещё не найдена проверенная карточка на российской легальной площадке.</span></div>';return;}
- list.innerHTML='<div class="legal-source-card"><div><strong>'+escapeHTML(source.platform)+'</strong><span>Карточка тайтла найдена · доступность просмотра в России не подтверждена</span></div><a class="button secondary" href="'+escapeHTML(source.url)+'" target="_blank" rel="noopener noreferrer">Открыть карточку ↗</a></div>';
+ const status=source.status||"Статус требует проверки";
+ list.innerHTML='<div class="legal-source-card"><div><strong>Проверка доступности в России</strong><span>'+escapeHTML(status)+'</span></div><a class="button secondary" href="'+escapeHTML(source.url)+'" target="_blank" rel="noopener noreferrer">Проверить на JustWatch ↗</a></div>';
 }
 const firebaseConfig = {
   apiKey: "AIzaSyCA5J5Xkq7zuuqUTGzIXUv_LDIa9y3y1ps",
