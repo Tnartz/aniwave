@@ -131,7 +131,7 @@ footer{text-align:center;color:#777184;padding:30px 10px;font-size:12px}
   <div class="row"><button id="adminSave" type="button">Сохранить источник</button><button class="secondary" id="adminReload" type="button">Обновить список</button></div>
   <p id="adminMessage" class="muted" role="status"></p>
 </div>
-<div class="panel"><h3>Добавленные источники</h3><div id="adminStreams" class="muted">Загрузка...</div></div>
+<div class="panel"><h3>Добавленные источники</h3><div class="row" style="gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px"><button class="secondary" type="button" id="adminCheckAllStreams">Проверить все потоки</button><span class="muted" id="adminCheckAllStatus" role="status">Проверка доступности всех добавленных HLS-источников</span></div><div id="adminStreams" class="muted">Загрузка...</div></div>
 </section>
 <section id="premium" class="page hidden">
 <div class="section-head"><h2>AniWave Premium</h2></div><p class="muted">Выбери план, который подходит именно тебе. Цены демонстрационные, оплата не подключена.</p><div class="plan-grid">
@@ -625,6 +625,26 @@ async function uploadAnimePosterFile(file){
  if(!response.ok||!result.secure_url)throw new Error(result.error?.message||"Cloudinary не принял изображение.");
  return result.secure_url;
 }
+async function checkAllStreamUrls(){
+ const button=document.getElementById("adminCheckAllStreams"),summary=document.getElementById("adminCheckAllStatus");
+ if(!button||button.disabled)return;
+ const checks=Array.from(document.querySelectorAll("#adminStreams [data-check-stream]"));
+ if(!checks.length){if(summary)summary.textContent="Нет добавленных источников для проверки.";return}
+ button.disabled=true;let ok=0,failed=0,uncertain=0;
+ try{
+  for(let index=0;index<checks.length;index++){
+   const item=checks[index],name=decodeURIComponent(item.dataset.checkStream),season=Number(item.dataset.season),ep=Number(item.dataset.episode);
+   if(summary)summary.textContent="Проверка "+(index+1)+" из "+checks.length+" · "+name+" · сезон "+season+" · серия "+ep;
+   await checkStreamUrl(name,season,ep,item);
+   const status=document.querySelector('[data-stream-status="'+encodeURIComponent(name)+'"][data-season="'+season+'"][data-episode="'+ep+'"]');
+   const result=(status?.textContent||"").trim();
+   if(result.startsWith("✓"))ok++;
+   else if(result.startsWith("✕")||result.startsWith("⚠"))failed++;
+   else uncertain++;
+  }
+  if(summary)summary.textContent="Проверка завершена: ✓ исправны — "+ok+" · ✕ проблемы — "+failed+" · ? не удалось подтвердить — "+uncertain+" · всего — "+checks.length;
+ }finally{button.disabled=false}
+}
 function renderAdmin(){
  if(!isAdmin){go("profile");document.getElementById("loginMessage").textContent="Для этой страницы нужны права администратора.";return}
  renderAdminAnimeList();
@@ -645,6 +665,7 @@ function renderAdmin(){
   rows.push('<div style="border-bottom:1px solid #332b48;padding:12px 0"><div class="muted" style="margin-bottom:7px">'+escapeHTML(name)+' · сезон '+season+' · серия '+ep+'</div><div class="row" style="gap:7px;flex-wrap:wrap"><input class="field" style="flex:1;min-width:120px" type="number" min="1" max="999" value="'+ep+'" aria-label="Новый номер серии" data-edit-episode-number="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'"><input class="field" style="flex:2;min-width:150px" maxlength="120" placeholder="Название серии" value="'+escapeHTML(item.title||'')+'" aria-label="Название серии" data-edit-episode-title="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'"><select class="field" style="max-width:145px" aria-label="Перенести в сезон" data-move-season="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'"></select><button class="secondary" type="button" data-move-episode="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'">Перенести</button><button class="secondary" type="button" data-save-episode="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'">Сохранить</button><button class="secondary" type="button" data-delete-stream="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'">Удалить</button><input class="field" style="flex:1 1 100%;min-width:220px" type="url" value="'+escapeHTML(item.url||'')+'" aria-label="HLS ссылка" data-edit-stream-url="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'"><button class="secondary" type="button" data-check-stream="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'">Проверить поток</button><button class="secondary" type="button" data-save-stream-url="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'">Сохранить ссылку</button><span class="review-meta" data-stream-status="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'"></span></div></div>');
  })));
  list.innerHTML=rows.join("")||"Пока нет добавленных источников.";
+ const checkAllButton=document.getElementById("adminCheckAllStreams");if(checkAllButton)checkAllButton.onclick=checkAllStreamUrls;
  list.querySelectorAll("[data-delete-stream]").forEach(button=>button.addEventListener("click",()=>deleteStream(decodeURIComponent(button.dataset.deleteStream),Number(button.dataset.season),Number(button.dataset.episode))));
  list.querySelectorAll("[data-save-stream-url]").forEach(button=>button.addEventListener("click",()=>saveStreamUrl(decodeURIComponent(button.dataset.saveStreamUrl),Number(button.dataset.season),Number(button.dataset.episode))));
  list.querySelectorAll("[data-check-stream]").forEach(button=>button.addEventListener("click",()=>checkStreamUrl(decodeURIComponent(button.dataset.checkStream),Number(button.dataset.season),Number(button.dataset.episode),button)));
