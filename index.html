@@ -124,6 +124,7 @@ footer{text-align:center;color:#777184;padding:30px 10px;font-size:12px}
  <div id="batchPosterResults" class="muted"></div>
 </div>
 <div class="panel"><h3>Состояние видеотеки</h3><div id="adminLibraryStats" class="profile-stats"><div class="profile-stat"><strong>—</strong><span>Серий в каталоге</span></div><div class="profile-stat"><strong>—</strong><span>Исправных источников</span></div><div class="profile-stat"><strong>—</strong><span>Требуют внимания</span></div><div class="profile-stat"><strong>—</strong><span>Без видеоссылки</span></div><div class="profile-stat"><strong>—</strong><span>Сезонов</span></div><div class="profile-stat"><strong>—</strong><span>Проверено источников</span></div></div><p class="muted" id="adminLibraryStatsNote">Сводка по сериям, уже внесённым в AniWave. Она не угадывает общее число серий в каждом аниме.</p></div>
+<div class="panel"><h3>Серии без видеоссылок</h3><p class="muted">Здесь отображаются только серии, уже заведённые в каталоге, но ещё не имеющие HLS-ссылки.</p><div id="adminMissingEpisodes" class="muted">Проверяем каталог…</div></div>
 <div class="panel"><h3>Управление HLS-источниками</h3>
   <p class="muted">Добавляй сезоны и серии с HTTPS HLS-ссылками .m3u8 только на видео, которое ты вправе распространять. Можно задать название каждой серии. Тестовый поток не является серией аниме.</p>
   <label for="adminAnime">Аниме</label><select class="field" id="adminAnime"></select>
@@ -647,6 +648,31 @@ async function checkAllStreamUrls(){
   renderAdminLibraryStats();
  }finally{button.disabled=false}
 }
+function renderAdminMissingEpisodes(){
+ const root=document.getElementById("adminMissingEpisodes");if(!root)return;
+ const missing=[];
+ Object.keys(EPISODE_CATALOG).sort().forEach(name=>{
+  const seasons=EPISODE_CATALOG[name]||{};
+  Object.keys(seasons).sort((a,b)=>Number(a)-Number(b)).forEach(season=>{
+   Object.keys(seasons[season]||{}).sort((a,b)=>Number(a)-Number(b)).forEach(ep=>{
+    const item=seasons[season][ep]||{};
+    if(!item.url)missing.push({name,season,episode:ep,title:item.title||""});
+   });
+  });
+ });
+ if(!missing.length){root.innerHTML='<p>✓ Все заведённые серии имеют видеоссылки. Новых незаполненных серий нет.</p>';return}
+ root.innerHTML='<p>Нужно добавить видеоссылку: <strong>'+missing.length+'</strong></p>'+missing.map(item=>'<div class="row" style="justify-content:space-between;gap:8px;padding:9px 0;border-bottom:1px solid #332b48;flex-wrap:wrap"><span>'+escapeHTML(item.name)+' · сезон '+item.season+' · серия '+item.episode+(item.title?' — '+escapeHTML(item.title):'')+'</span><button class="secondary" type="button" data-fill-missing="'+encodeURIComponent(item.name)+'" data-season="'+item.season+'" data-episode="'+item.episode+'">Добавить ссылку</button></div>').join("");
+ root.querySelectorAll("[data-fill-missing]").forEach(button=>button.addEventListener("click",()=>{
+  const name=decodeURIComponent(button.dataset.fillMissing),season=Number(button.dataset.season),ep=Number(button.dataset.episode);
+  const animeSelect=document.getElementById("adminAnime"),seasonInput=document.getElementById("adminSeason"),episodeInput=document.getElementById("adminEpisode");
+  if(animeSelect)animeSelect.value=name;if(seasonInput)seasonInput.value=season;if(episodeInput)episodeInput.value=ep;
+  const title=EPISODE_CATALOG[name]?.[season]?.[ep]?.title||"",titleInput=document.getElementById("adminEpisodeTitle");
+  if(titleInput)titleInput.value=title;
+  const urlInput=document.getElementById("adminUrl");if(urlInput)urlInput.focus();
+  document.getElementById("adminMessage").textContent="Добавь HTTPS .m3u8 ссылку для "+name+" · сезон "+season+" · серия "+ep+".";
+  document.getElementById("adminUrl")?.scrollIntoView({behavior:"smooth",block:"center"});
+ }));
+}
 function renderAdminLibraryStats(){
  const root=document.getElementById("adminLibraryStats");if(!root)return;
  let total=0,healthy=0,attention=0,missing=0,checked=0,seasons=0;
@@ -675,6 +701,7 @@ function renderAdmin(){
  if(!isAdmin){go("profile");document.getElementById("loginMessage").textContent="Для этой страницы нужны права администратора.";return}
  renderAdminAnimeList();
  renderAdminLibraryStats();
+ renderAdminMissingEpisodes();
  const select=document.getElementById("adminAnime");
  if(!select.options.length)select.innerHTML=anime.map(a=>'<option value="'+escapeHTML(a.name)+'">'+escapeHTML(a.name)+'</option>').join("");
  const list=document.getElementById("adminStreams");
@@ -897,6 +924,7 @@ async function saveStream(){
   if(!EPISODE_CATALOG[animeTitle])EPISODE_CATALOG[animeTitle]={};
   if(!EPISODE_CATALOG[animeTitle][season])EPISODE_CATALOG[animeTitle][season]={};
   EPISODE_CATALOG[animeTitle][season][ep]={url,title};
+  renderAdminMissingEpisodes();
   if(season===1){if(!HLS_SOURCES[animeTitle])HLS_SOURCES[animeTitle]={};HLS_SOURCES[animeTitle][ep]=url}
   document.getElementById("adminUrl").value="";
   document.getElementById("adminEpisodeTitle").value="";
