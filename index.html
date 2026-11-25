@@ -437,7 +437,7 @@ async function loadStreams(){
    EPISODE_CATALOG[data.animeTitle][season][data.episode]={url:data.url,title:data.title||""};
    if(season===1){if(!HLS_SOURCES[data.animeTitle])HLS_SOURCES[data.animeTitle]={};HLS_SOURCES[data.animeTitle][data.episode]=data.url}
   });
-  if(document.getElementById("adminStreams"))renderAdmin();
+  if(isAdmin&&document.getElementById("adminStreams"))renderAdmin();
   if(document.getElementById("watch")&&!document.getElementById("watch").classList.contains("hidden")){renderWatch();awLoadEpisode()}
  }catch(error){
   console.warn("Не удалось загрузить список серий. Проверь правила Firestore.",error);
