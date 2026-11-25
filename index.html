@@ -601,8 +601,14 @@ async function loadStreams(){
   const snapshot=await db.collection("streams").get();
   snapshot.forEach(doc=>{
    const data=doc.data();
-   if(!data.animeTitle||!Number.isInteger(data.episode)||!data.url)return;
+   if(!data.animeTitle||!Number.isInteger(data.episode))return;
    const season=Number.isInteger(data.season)&&data.season>0?data.season:1;
+   if(data.deleted===true){
+    if(EPISODE_CATALOG[data.animeTitle]?.[season])delete EPISODE_CATALOG[data.animeTitle][season][data.episode];
+    if(season===1&&HLS_SOURCES[data.animeTitle])delete HLS_SOURCES[data.animeTitle][data.episode];
+    return;
+   }
+   if(!data.url)return;
    if(!EPISODE_CATALOG[data.animeTitle])EPISODE_CATALOG[data.animeTitle]={};
    if(!EPISODE_CATALOG[data.animeTitle][season])EPISODE_CATALOG[data.animeTitle][season]={};
    EPISODE_CATALOG[data.animeTitle][season][data.episode]={url:data.url,title:data.title||"",lastCheckStatus:data.lastCheckStatus||"",lastCheckMessage:data.lastCheckMessage||"",lastCheckAt:data.lastCheckAt||null};
@@ -1070,8 +1076,8 @@ async function deleteBunnyVideo(videoId,button){
   await bunnyAdminRequest("/api/videos/"+encodeURIComponent(videoId),{method:"DELETE"});
   const snapshot=await db.collection("streams").where("bunnyVideoId","==",videoId).get();
   const docs=snapshot.docs;
-  for(let i=0;i<docs.length;i+=450){const batch=db.batch();docs.slice(i,i+450).forEach(doc=>batch.delete(doc.ref));await batch.commit()}
-  message.textContent="Видео удалено из Bunny. Связанные записи серий AniWave очищены.";
+  for(let i=0;i<docs.length;i+=450){const batch=db.batch();docs.slice(i,i+450).forEach(doc=>batch.set(doc.ref,{url:"",deleted:true,bunnyVideoId:firebase.firestore.FieldValue.delete(),updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true}));await batch.commit()}
+  message.textContent="Видео удалено из Bunny. Связанные серии сняты с публикации в AniWave.";
   await loadStreams();renderAdmin();await loadBunnyVideos();
  }catch(error){message.textContent="Не удалось завершить удаление: "+error.message+" Проверь список Bunny перед повторной попыткой."}
  finally{button.disabled=false}
