@@ -102,7 +102,7 @@ footer{text-align:center;color:#777184;padding:30px 10px;font-size:12px}
 <div class="home-section"><div class="section-head"><div><h2>✨ Высокий рейтинг</h2><div class="home-subtitle">Фавориты зрителей AniWave</div></div></div><div class="grid" id="topRatedGrid"></div></div>
 </section>
 <section id="catalog" class="page hidden">
-<div class="section-head"><h2>Каталог аниме</h2></div><div class="catalog-search-wrap"><input class="search" id="search" type="search" autocomplete="off" aria-autocomplete="list" aria-controls="catalogSuggestions" aria-expanded="false" placeholder="Название, альтернативное имя, жанр, студия..." aria-label="Поиск по каталогу аниме" oninput="renderCatalog();renderCatalogSuggestions()" onfocus="renderCatalogSuggestions()" onkeydown="handleCatalogSearchKey(event)" onblur="setTimeout(hideCatalogSuggestions,160)"><div class="catalog-suggestions hidden" id="catalogSuggestions" role="listbox"></div></div><p class="catalog-search-hint">Ищи по названию, альтернативному названию, жанрам, описанию, студии, стране и типу аниме.</p><div class="catalog-controls"><select id="catalogYear" aria-label="Год выхода" onchange="renderCatalog()"><option value="">Все годы</option></select><select id="catalogMinRating" aria-label="Минимальный рейтинг" onchange="renderCatalog()"><option value="0">Любой рейтинг</option><option value="7">От 7.0</option><option value="8">От 8.0</option><option value="9">От 9.0</option></select><select id="catalogSort" aria-label="Сортировка" onchange="renderCatalog()"><option value="rating">По рейтингу</option><option value="year-desc">Сначала новые</option><option value="year-asc">Сначала старые</option><option value="name">По названию</option></select></div><div class="catalog-count" id="catalogCount" aria-live="polite"></div><div class="filters" id="filters"><button class="active" data-filter="Все">Все</button><button data-filter="Экшен">Экшен</button><button data-filter="Приключения">Приключения</button><button data-filter="Романтика">Романтика</button><button data-filter="Фэнтези">Фэнтези</button><button data-filter="Фантастика">Фантастика</button><button data-filter="Триллер">Триллер</button><button data-filter="Комедия">Комедия</button><button data-filter="Спорт">Спорт</button><button data-filter="Ужасы">Ужасы</button></div><div class="grid" id="catalogGrid"></div>
+<div class="section-head"><div><h2>Каталог аниме</h2><div class="home-subtitle">Бесплатная база AniList-подобного каталога через Jikan API</div></div><button type="button" class="secondary" id="loadJikanCatalog">Загрузить ещё аниме</button></div><p class="catalog-search-hint" id="jikanCatalogStatus" aria-live="polite">Подключаем бесплатную базу аниме…</p><div class="catalog-search-wrap"><input class="search" id="search" type="search" autocomplete="off" aria-autocomplete="list" aria-controls="catalogSuggestions" aria-expanded="false" placeholder="Название, альтернативное имя, жанр, студия..." aria-label="Поиск по каталогу аниме" oninput="renderCatalog();renderCatalogSuggestions()" onfocus="renderCatalogSuggestions()" onkeydown="handleCatalogSearchKey(event)" onblur="setTimeout(hideCatalogSuggestions,160)"><div class="catalog-suggestions hidden" id="catalogSuggestions" role="listbox"></div></div><p class="catalog-search-hint">Ищи по названию, альтернативному названию, жанрам, описанию, студии, стране и типу аниме.</p><div class="catalog-controls"><select id="catalogYear" aria-label="Год выхода" onchange="renderCatalog()"><option value="">Все годы</option></select><select id="catalogMinRating" aria-label="Минимальный рейтинг" onchange="renderCatalog()"><option value="0">Любой рейтинг</option><option value="7">От 7.0</option><option value="8">От 8.0</option><option value="9">От 9.0</option></select><select id="catalogSort" aria-label="Сортировка" onchange="renderCatalog()"><option value="rating">По рейтингу</option><option value="year-desc">Сначала новые</option><option value="year-asc">Сначала старые</option><option value="name">По названию</option></select></div><div class="catalog-count" id="catalogCount" aria-live="polite"></div><div class="filters" id="filters"><button class="active" data-filter="Все">Все</button><button data-filter="Экшен">Экшен</button><button data-filter="Приключения">Приключения</button><button data-filter="Романтика">Романтика</button><button data-filter="Фэнтези">Фэнтези</button><button data-filter="Фантастика">Фантастика</button><button data-filter="Триллер">Триллер</button><button data-filter="Комедия">Комедия</button><button data-filter="Спорт">Спорт</button><button data-filter="Ужасы">Ужасы</button></div><div class="grid" id="catalogGrid"></div>
 </section>
 <section id="watch" class="page hidden">
 <div class="detail-hero" id="detailHero">
@@ -1939,7 +1939,88 @@ document.getElementById("existingPosterFile").addEventListener("change",()=>{con
 document.getElementById("updateExistingPoster").addEventListener("click",updateExistingAnimePoster);
 document.getElementById("batchPosterUpload").addEventListener("click",uploadPosterBatch);
 document.getElementById("newAnimePosterFile").addEventListener("change",previewAnimePoster);
+
+// Бесплатный каталог аниме через публичный Jikan API (данные MyAnimeList).
+// Видео не загружаются: это метаданные, постеры и описания для каталога.
+let jikanCatalogPage=1;
+let jikanCatalogLoading=false;
+const JIKAN_CACHE_KEY="aniwave-jikan-catalog-v1";
+const JIKAN_CACHE_TTL=6*60*60*1000;
+const jikanKnownIds=new Set(anime.map(item=>item.jikanId).filter(Boolean));
+const JIKAN_GENRE_MAP={
+ "Action":"Экшен","Adventure":"Приключения","Comedy":"Комедия","Drama":"Драма",
+ "Fantasy":"Фэнтези","Horror":"Ужасы","Mystery":"Детектив","Romance":"Романтика",
+ "Sci-Fi":"Фантастика","Sports":"Спорт","Supernatural":"Фэнтези","Suspense":"Триллер",
+ "Award Winning":"Драма","Gourmet":"Повседневность","Slice of Life":"Повседневность",
+ "Avant Garde":"Драма","Ecchi":"Комедия"
+};
+function mapJikanAnime(item){
+ const title=item.title||item.title_english||"Аниме";
+ const genres=(item.genres||[]).map(g=>JIKAN_GENRE_MAP[g.name]||g.name).filter(Boolean);
+ const uniqueGenres=[...new Set(genres)];
+ const image=item.images?.jpg?.large_image_url||item.images?.jpg?.image_url||"";
+ const year=item.year||item.aired?.prop?.from?.year||"—";
+ const synopsis=String(item.synopsis||"Описание пока не добавлено в базе.").replace(/\s*\[Written by MAL Rewrite\]\s*/gi,"").trim();
+ return {
+  jikanId:item.mal_id,name:title,altTitle:item.title_english||item.title_japanese||"",
+  genre:uniqueGenres[0]||"Аниме",genres:uniqueGenres,year:String(year),
+  rating:item.score?Number(item.score).toFixed(1):"—",emoji:"🎌",img,desc:synopsis,
+  type:item.type||"Аниме",status:item.status||"Неизвестно",
+  studio:(item.studios||[]).map(x=>x.name).join(", "),
+  source:item.source||"Не указан",country:"Япония",
+  episodes:item.episodes||null,malUrl:item.url||""
+ };
+}
+function mergeJikanAnime(items){
+ let added=0;
+ for(const raw of items||[]){
+  if(!raw?.mal_id||jikanKnownIds.has(raw.mal_id))continue;
+  const mapped=mapJikanAnime(raw);
+  const duplicate=anime.some(a=>normalizeCatalogSearch(a.name)===normalizeCatalogSearch(mapped.name));
+  if(duplicate){jikanKnownIds.add(raw.mal_id);continue}
+  anime.push(mapped);jikanKnownIds.add(raw.mal_id);added++;
+ }
+ return added;
+}
+async function loadJikanCatalog(nextPage=1){
+ const button=document.getElementById("loadJikanCatalog");
+ const status=document.getElementById("jikanCatalogStatus");
+ if(jikanCatalogLoading)return;
+ jikanCatalogLoading=true;
+ if(button){button.disabled=true;button.textContent="Загружаем…"}
+ if(status)status.textContent="Получаем список аниме из бесплатной базы…";
+ try{
+  let payload=null;
+  if(nextPage===1){
+   try{
+    const cached=JSON.parse(localStorage.getItem(JIKAN_CACHE_KEY)||"null");
+    if(cached?.savedAt&&Date.now()-cached.savedAt<JIKAN_CACHE_TTL&&Array.isArray(cached.items))payload={data:cached.items,pagination:{has_next_page:true}};
+   }catch(_e){}
+  }
+  if(!payload){
+   const response=await fetch("https://api.jikan.moe/v4/top/anime?page="+nextPage+"&limit=25&sfw=true",{headers:{Accept:"application/json"}});
+   if(!response.ok)throw new Error(response.status===429?"Сервис просит немного подождать. Попробуй ещё раз через минуту.":"База временно недоступна (ошибка "+response.status+").");
+   payload=await response.json();
+   if(nextPage===1){try{localStorage.setItem(JIKAN_CACHE_KEY,JSON.stringify({savedAt:Date.now(),items:payload.data||[]}))}catch(_e){}}
+  }
+  const added=mergeJikanAnime(payload.data||[]);
+  jikanCatalogPage=nextPage;
+  renderHome();renderCatalog();
+  const hasMore=Boolean(payload.pagination?.has_next_page);
+  if(status)status.textContent=added
+   ?"Добавлено "+added+" новых аниме. Всего в каталоге: "+anime.length+". Источник данных: Jikan / MyAnimeList."
+   :"Новых тайтлов на этой странице нет. Всего в каталоге: "+anime.length+".";
+  if(button){button.disabled=!hasMore;button.textContent=hasMore?"Загрузить ещё аниме":"Больше результатов пока нет"}
+ }catch(error){
+  if(status)status.textContent="Не удалось обновить каталог: "+(error?.message||"ошибка сети")+" Уже добавленные аниме доступны.";
+  if(button){button.disabled=false;button.textContent="Повторить загрузку"}
+  console.warn("AniWave Jikan catalog:",error);
+ }finally{jikanCatalogLoading=false;if(button&&button.textContent==="Загружаем…"){button.disabled=false;button.textContent="Загрузить ещё аниме"}}
+}
+document.getElementById("loadJikanCatalog")?.addEventListener("click",()=>loadJikanCatalog(jikanCatalogPage+1));
+
 loadCloudinaryConfig();
 renderHome();renderCatalog();renderWatch();initAuth();
+loadJikanCatalog(1);
 </script>
 </body></html>
