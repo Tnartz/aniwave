@@ -551,10 +551,11 @@ function renderAdmin(){
  });
  Object.keys(EPISODE_CATALOG).forEach(name=>Object.keys(EPISODE_CATALOG[name]||{}).forEach(season=>Object.keys(EPISODE_CATALOG[name][season]||{}).forEach(ep=>{
   const item=EPISODE_CATALOG[name][season][ep];
-  rows.push('<div class="row" style="justify-content:space-between;border-bottom:1px solid #332b48;padding:10px 0"><span>'+escapeHTML(name)+' · сезон '+season+' · серия '+ep+(item.title?' — '+escapeHTML(item.title):'')+'</span><button class="secondary" type="button" data-delete-stream="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'">Удалить</button></div>');
+  rows.push('<div style="border-bottom:1px solid #332b48;padding:10px 0"><div class="muted" style="margin-bottom:7px">'+escapeHTML(name)+' · сезон '+season+' · серия '+ep+'</div><div class="row" style="gap:7px;flex-wrap:wrap"><input class="field" style="flex:1;min-width:120px" type="number" min="1" max="999" value="'+ep+'" aria-label="Новый номер серии" data-edit-episode-number="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'"><input class="field" style="flex:2;min-width:150px" maxlength="120" placeholder="Название серии" value="'+escapeHTML(item.title||'')+'" aria-label="Название серии" data-edit-episode-title="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'"><button class="secondary" type="button" data-save-episode="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'">Сохранить</button><button class="secondary" type="button" data-delete-stream="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'">Удалить</button></div></div>');
  })));
  list.innerHTML=rows.join("")||"Пока нет добавленных источников.";
  list.querySelectorAll("[data-delete-stream]").forEach(button=>button.addEventListener("click",()=>deleteStream(decodeURIComponent(button.dataset.deleteStream),Number(button.dataset.season),Number(button.dataset.episode))));
+ list.querySelectorAll("[data-save-episode]").forEach(button=>button.addEventListener("click",()=>updateEpisode(decodeURIComponent(button.dataset.saveEpisode),Number(button.dataset.season),Number(button.dataset.episode))));
  list.querySelectorAll("[data-save-season]").forEach(button=>button.addEventListener("click",()=>saveAnimeSeasonName(decodeURIComponent(button.dataset.saveSeason),Number(button.dataset.season))));
  list.querySelectorAll("[data-delete-season]").forEach(button=>button.addEventListener("click",()=>deleteAnimeSeason(decodeURIComponent(button.dataset.deleteSeason),Number(button.dataset.season))));
 }
@@ -612,6 +613,36 @@ async function deleteAnimeSeason(animeTitle,season){
   if(currentAnime.name===animeTitle&&selectedSeason===season){selectedSeason=getAvailableSeasons(animeTitle)[0]||1;episode=1;renderWatch()}
   renderAdmin();
  }catch(error){message.textContent="Не удалось удалить сезон: "+error.message}
+}
+async function updateEpisode(animeTitle,oldSeason,oldEpisode){
+ const message=document.getElementById("adminMessage");
+ if(!user||!isAdmin)return;
+ const key=encodeURIComponent(animeTitle);
+ const numberInput=document.querySelector('[data-edit-episode-number="'+key+'"][data-season="'+oldSeason+'"][data-episode="'+oldEpisode+'"]');
+ const titleInput=document.querySelector('[data-edit-episode-title="'+key+'"][data-season="'+oldSeason+'"][data-episode="'+oldEpisode+'"]');
+ const newEpisode=Number(numberInput?.value);
+ const title=(titleInput?.value||"").trim();
+ if(!Number.isInteger(newEpisode)||newEpisode<1||newEpisode>999){message.textContent="Номер серии должен быть от 1 до 999.";return}
+ const oldId=encodeURIComponent(animeTitle)+"_s"+oldSeason+"_e"+oldEpisode;
+ const newId=encodeURIComponent(animeTitle)+"_s"+oldSeason+"_e"+newEpisode;
+ try{
+  const oldRef=db.collection("streams").doc(oldId);
+  const oldSnap=await oldRef.get();
+  if(!oldSnap.exists){message.textContent="Источник не найден. Нажми «Обновить список».";return}
+  const oldData=oldSnap.data();
+  const newRef=db.collection("streams").doc(newId);
+  if(newId!==oldId){const target=await newRef.get();if(target.exists){message.textContent="Такая серия уже существует в этом сезоне.";return}}
+  const updated={...oldData,animeTitle,season:oldSeason,episode:newEpisode,title,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
+  const batch=db.batch();batch.set(newRef,updated);if(newId!==oldId)batch.delete(oldRef);await batch.commit();
+  if(!EPISODE_CATALOG[animeTitle])EPISODE_CATALOG[animeTitle]={};
+  if(!EPISODE_CATALOG[animeTitle][oldSeason])EPISODE_CATALOG[animeTitle][oldSeason]={};
+  delete EPISODE_CATALOG[animeTitle][oldSeason][oldEpisode];
+  EPISODE_CATALOG[animeTitle][oldSeason][newEpisode]={url:oldData.url,title};
+  if(oldSeason===1){if(!HLS_SOURCES[animeTitle])HLS_SOURCES[animeTitle]={};delete HLS_SOURCES[animeTitle][oldEpisode];HLS_SOURCES[animeTitle][newEpisode]=oldData.url}
+  message.textContent="Данные серии сохранены. Видеопоток сохранён без изменений.";
+  if(currentAnime.name===animeTitle&&selectedSeason===oldSeason&&episode===oldEpisode){episode=newEpisode;renderWatch();awLoadEpisode()}else if(currentAnime.name===animeTitle&&selectedSeason===oldSeason)renderWatch();
+  renderAdmin();
+ }catch(error){message.textContent="Не удалось изменить серию: "+error.message}
 }
 async function saveStream(){
  const message=document.getElementById("adminMessage");
