@@ -109,6 +109,7 @@ footer{text-align:center;color:#777184;padding:30px 10px;font-size:12px}
 <div class="continue-card hidden" id="continueCard"><div><strong>▶ Продолжить просмотр</strong><p id="continueInfo">Твоя последняя серия</p></div><button type="button" id="continueButton" onclick="resumeAnime()">Продолжить →</button></div>
 <section class="reviews-panel"><div class="detail-section-head"><div><div class="eyebrow">СООБЩЕСТВО ANIWAVE</div><h2>Оценки и отзывы</h2></div></div><div class="review-summary" id="reviewSummary">Загружаем отзывы…</div><div class="review-form" id="reviewForm"><div class="review-form-row"><label for="reviewRating">Твоя оценка</label><select id="reviewRating"><option value="10">10 — шедевр</option><option value="9">9 — отлично</option><option value="8" selected>8 — очень хорошо</option><option value="7">7 — хорошо</option><option value="6">6 — неплохо</option><option value="5">5 — средне</option><option value="4">4 — слабо</option><option value="3">3 — плохо</option><option value="2">2 — очень плохо</option><option value="1">1 — ужасно</option></select></div><textarea id="reviewText" maxlength="1200" placeholder="Поделись впечатлениями об этом аниме…"></textarea><div class="review-form-row"><button type="button" onclick="saveAnimeReview()">Опубликовать отзыв</button><span class="review-meta" id="reviewFormMessage">Нужен вход в аккаунт AniWave</span></div></div><div class="review-list" id="reviewList"></div></section>
 <div class="detail-section-head"><div><div class="eyebrow">СМОТРИ В СВОЁМ ТЕМПЕ</div><h2>Список серий</h2></div><span class="meta">Выбери сезон и серию ниже</span></div>
+<div class="episode-share-row"><span class="review-meta">Можно поделиться ссылкой на эту серию</span><button type="button" class="secondary" id="shareEpisodeButton" onclick="copyEpisodeLink()">↗ Поделиться серией</button></div>
 <section class="panel episode-info-panel" id="episodeInfoPanel" aria-live="polite">
   <div class="eyebrow">СЕЙЧАС В ПЛЕЕРЕ</div>
   <h2 id="episodeInfoTitle">Серия 1</h2>
@@ -355,12 +356,54 @@ function renderContinueWatching(){const section=document.getElementById("homeCon
 function resumeSavedAnimeByIndex(index,season,episodeNumber){const item=anime[index];if(!item)return;openAnime(item.name);selectedSeason=Number(season)||1;episode=Number(episodeNumber)||1;renderWatch();document.getElementById("playerSection").scrollIntoView({behavior:"smooth",block:"start"})}
 function renderHome(){renderFeatured();document.getElementById("latestGrid").innerHTML=[...anime].sort((a,b)=>Number(b.year)-Number(a.year)).slice(0,6).map(card).join("");document.getElementById("homeGrid").innerHTML=anime.slice(0,6).map(card).join("");document.getElementById("topRatedGrid").innerHTML=[...anime].sort((a,b)=>Number(b.rating)-Number(a.rating)).slice(0,6).map(card).join("");renderRecommendations();renderContinueWatching()}
 function go(page){document.querySelectorAll(".page").forEach(x=>x.classList.add("hidden"));document.getElementById(page).classList.remove("hidden");document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("active",x.dataset.page===page));if(page==="catalog")renderCatalog();if(page==="profile")renderProfile();if(page==="admin")renderAdmin();window.scrollTo({top:0,behavior:"smooth"})}
+function setAniWaveRoute(type,name,season,episodeNumber){
+ const slug=encodeURIComponent(String(name||""));
+ const hash=type==="episode"?"#episode/"+slug+"/"+Number(season||1)+"/"+Number(episodeNumber||1):"#anime/"+slug;
+ try{history.replaceState(null,"",location.pathname+location.search+hash)}catch(error){location.hash=hash}
+}
+function getAniWaveRoute(){
+ const match=String(location.hash||"").match(/^#(episode|anime)\/([^/]+)(?:\/(\d+)\/(\d+))?$/);
+ if(!match)return null;
+ try{return{type:match[1],name:decodeURIComponent(match[2]),season:Math.max(1,Number(match[3])||1),episode:Math.max(1,Number(match[4])||1)}}catch(error){return null}
+}
+function restoreAniWaveRoute(){
+ const route=getAniWaveRoute();if(!route)return false;
+ const item=anime.find(entry=>entry.name===route.name);if(!item)return false;
+ currentAnime=item;selectedSeason=route.season;episode=route.episode;
+ document.getElementById("watchTitle").textContent=currentAnime.name;
+ document.getElementById("watchDesc").textContent=currentAnime.desc;
+ document.getElementById("detailGenre").textContent=currentAnime.genre;
+ document.getElementById("detailYear").textContent=currentAnime.year;
+ document.getElementById("detailRating").textContent="★ "+currentAnime.rating;
+ document.getElementById("detailAltTitle").textContent=currentAnime.altTitle||"—";
+ document.getElementById("detailType").textContent=currentAnime.type||"—";
+ document.getElementById("detailStatus").textContent=currentAnime.status||"—";
+ document.getElementById("detailStudio").textContent=currentAnime.studio||"—";
+ document.getElementById("detailCountry").textContent=currentAnime.country||"—";
+ document.getElementById("detailSource").textContent=currentAnime.source||"—";
+ document.getElementById("detailYearStat").textContent=currentAnime.year;
+ document.getElementById("detailGenreStat").textContent=currentAnime.genre;
+ renderLegalSources();
+ if(currentAnime.img){document.getElementById("detailPoster").src=currentAnime.img;document.getElementById("detailPoster").style.visibility="visible";document.getElementById("detailBackdrop").style.backgroundImage="linear-gradient(90deg,rgba(9,9,20,.98),rgba(9,9,20,.82) 48%,rgba(9,9,20,.18)),url('"+currentAnime.img+"')"}
+ else{document.getElementById("detailPoster").style.visibility="hidden";document.getElementById("detailBackdrop").style.backgroundImage="linear-gradient(90deg,rgba(9,9,20,.98),rgba(9,9,20,.82) 48%,rgba(9,9,20,.18))"}
+ const status=watchlistEntries.find(entry=>entry.animeTitle===currentAnime.name)?.status||"";
+ const statusSelect=document.getElementById("animeWatchStatus");if(statusSelect)statusSelect.value=status;
+ renderWatch();go("watch");
+ if(route.type==="episode")document.getElementById("playerSection").scrollIntoView({behavior:"smooth",block:"start"});
+ return true;
+}
+async function copyEpisodeLink(){
+ const url=location.origin+location.pathname+location.search+"#episode/"+encodeURIComponent(currentAnime.name)+"/"+selectedSeason+"/"+episode;
+ try{await navigator.clipboard.writeText(url);const button=document.getElementById("shareEpisodeButton");if(button){button.textContent="✓ Ссылка скопирована";setTimeout(()=>button.textContent="↗ Поделиться серией",2200)}}
+ catch(error){window.prompt("Скопируй ссылку на серию:",url)}
+}
 function openAnimeByIndex(index){const item=anime[index];if(item)openAnime(item.name)}
-function openAnime(name){currentAnime=anime.find(a=>a.name===name)||anime[0];selectedSeason=1;episode=1;document.getElementById("watchTitle").textContent=currentAnime.name;document.getElementById("watchDesc").textContent=currentAnime.desc;document.getElementById("detailGenre").textContent=currentAnime.genre;document.getElementById("detailYear").textContent=currentAnime.year;document.getElementById("detailRating").textContent="★ "+currentAnime.rating;const watchStatus=watchlistEntries.find(item=>item.animeTitle===currentAnime.name)?.status||"";const watchStatusSelect=document.getElementById("animeWatchStatus");if(watchStatusSelect)watchStatusSelect.value=watchStatus;const watchStatusMessage=document.getElementById("watchStatusMessage");if(watchStatusMessage)watchStatusMessage.textContent="";document.getElementById("detailAltTitle").textContent=currentAnime.altTitle||"—";document.getElementById("detailType").textContent=currentAnime.type||"—";document.getElementById("detailStatus").textContent=currentAnime.status||"—";document.getElementById("detailStudio").textContent=currentAnime.studio||"—";document.getElementById("detailCountry").textContent=currentAnime.country||"—";document.getElementById("detailSource").textContent=currentAnime.source||"—";document.getElementById("detailYearStat").textContent=currentAnime.year;document.getElementById("detailGenreStat").textContent=currentAnime.genre;renderLegalSources();if(currentAnime.img){document.getElementById("detailPoster").src=currentAnime.img;document.getElementById("detailPoster").style.visibility="visible";document.getElementById("detailBackdrop").style.backgroundImage="linear-gradient(90deg,rgba(9,9,20,.98),rgba(9,9,20,.82) 48%,rgba(9,9,20,.18)),url('"+currentAnime.img+"')"}else{document.getElementById("detailPoster").style.visibility="hidden";document.getElementById("detailBackdrop").style.backgroundImage="linear-gradient(90deg,rgba(9,9,20,.98),rgba(9,9,20,.82) 48%,rgba(9,9,20,.18))"}renderWatch();go("watch")}
+function openAnime(name){currentAnime=anime.find(a=>a.name===name)||anime[0];selectedSeason=1;episode=1;setAniWaveRoute("anime",currentAnime.name,1,1);document.getElementById("watchTitle").textContent=currentAnime.name;document.getElementById("watchDesc").textContent=currentAnime.desc;document.getElementById("detailGenre").textContent=currentAnime.genre;document.getElementById("detailYear").textContent=currentAnime.year;document.getElementById("detailRating").textContent="★ "+currentAnime.rating;const watchStatus=watchlistEntries.find(item=>item.animeTitle===currentAnime.name)?.status||"";const watchStatusSelect=document.getElementById("animeWatchStatus");if(watchStatusSelect)watchStatusSelect.value=watchStatus;const watchStatusMessage=document.getElementById("watchStatusMessage");if(watchStatusMessage)watchStatusMessage.textContent="";document.getElementById("detailAltTitle").textContent=currentAnime.altTitle||"—";document.getElementById("detailType").textContent=currentAnime.type||"—";document.getElementById("detailStatus").textContent=currentAnime.status||"—";document.getElementById("detailStudio").textContent=currentAnime.studio||"—";document.getElementById("detailCountry").textContent=currentAnime.country||"—";document.getElementById("detailSource").textContent=currentAnime.source||"—";document.getElementById("detailYearStat").textContent=currentAnime.year;document.getElementById("detailGenreStat").textContent=currentAnime.genre;renderLegalSources();if(currentAnime.img){document.getElementById("detailPoster").src=currentAnime.img;document.getElementById("detailPoster").style.visibility="visible";document.getElementById("detailBackdrop").style.backgroundImage="linear-gradient(90deg,rgba(9,9,20,.98),rgba(9,9,20,.82) 48%,rgba(9,9,20,.18)),url('"+currentAnime.img+"')"}else{document.getElementById("detailPoster").style.visibility="hidden";document.getElementById("detailBackdrop").style.backgroundImage="linear-gradient(90deg,rgba(9,9,20,.98),rgba(9,9,20,.82) 48%,rgba(9,9,20,.18))"}renderWatch();go("watch")}
 function selectWatchSeason(value){
  selectedSeason=Math.max(1,Number(value)||1);
  const available=Object.keys(EPISODE_CATALOG[currentAnime.name]?.[selectedSeason]||{}).map(Number).sort((a,b)=>a-b);
  episode=available[0]||1;
+ setAniWaveRoute("episode",currentAnime.name,selectedSeason,episode);
  renderWatch();
 }
 let animeReviewsCache=[];
@@ -488,7 +531,7 @@ function changeEpisode(n){
  const index=list.findIndex(item=>item.season===selectedSeason&&item.episode===episode);
  const next=list[index+n];
  if(!next)return;
- selectedSeason=next.season;episode=next.episode;renderWatch();awLoadEpisode();
+ selectedSeason=next.season;episode=next.episode;setAniWaveRoute("episode",currentAnime.name,selectedSeason,episode);renderWatch();awLoadEpisode();
 }
 async function toggleFavorite(){
  if(!user){go("profile");document.getElementById("loginMessage").textContent="Войди, чтобы сохранять избранное.";return}
@@ -569,6 +612,7 @@ function initAuth(){
   if(isAdmin){try{await seedJujutsuKaisen()}catch(error){console.error("Не удалось добавить стартовое аниме",error)}}
   await loadAnimeCatalog();
   await loadStreams();
+  restoreAniWaveRoute();
   await loadCloudProgress();
   await loadAnimeReviews();
   renderProfileStats();
