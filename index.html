@@ -248,15 +248,6 @@ let animeReviewsCache=[];
 let episodeCommentsCache=[];
 let commentsLoadKey="";
 function currentCommentKey(){return currentAnime.name+"|"+selectedSeason+"|"+episode}
-function renderEpisodeComments(){
- const key=currentCommentKey(),context=document.getElementById("commentContext"),list=document.getElementById("commentList"),count=document.getElementById("commentCount"),form=document.getElementById("commentForm"),message=document.getElementById("commentFormMessage");
- if(!list)return;
- if(context)context.textContent=currentAnime.name+" · Сезон "+selectedSeason+" · Серия "+episode;
- const items=episodeCommentsCache.filter(x=>x.animeTitle===currentAnime.name&&Number(x.season)===Number(selectedSeason)&&Number(x.episode)===Number(episode)).sort((a,b)=>(Number(b.createdAt)||0)-(Number(a.createdAt)||0));
- if(count)count.textContent=items.length+" "+(items.length===1?"комментарий":items.length<5?"комментария":"комментариев");
- if(form){const textarea=document.getElementById("commentText");textarea.disabled=!user;form.querySelector('button[type="submit"]').disabled=!user;if(message)message.textContent=user?"Пиши уважительно — до 1000 символов":"Войди в аккаунт, чтобы писать комментарии"}
- list.innerHTML=items.map(x=>'<article class="comment-item"><div class="comment-head"><div class="comment-author"><span class="comment-avatar">'+escapeHTML(x.avatar||"🌙")+'</span><div><strong>'+escapeHTML(x.nickname||"Зритель AniWave")+'</strong><div class="review-meta">'+(x.createdAt?new Date(Number(x.createdAt)).toLocaleString("ru-RU"):"")+'</div></div></div>'+(user&&x.userId===user.uid?'<button class="comment-delete" type="button" onclick="deleteEpisodeComment(\''+x.id+'\')">Удалить</button>':"")+'</div><p>'+escapeHTML(x.text||"")+'</p></article>').join("")||'<p class="muted">Пока здесь нет комментариев. Начни обсуждение!</p>';
-}
 async function loadEpisodeComments(){
  const key=currentCommentKey();commentsLoadKey=key;
  const list=document.getElementById("commentList");if(list)list.innerHTML='<p class="muted">Загружаем обсуждение…</p>';
