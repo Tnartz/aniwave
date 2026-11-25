@@ -1053,7 +1053,7 @@ async function saveBulkEpisodes(){
  }catch(error){message.textContent="Не удалось добавить пакет: "+error.message}
  finally{button.disabled=false}
 }
-async async function addAdminLog(action,details){
+async function addAdminLog(action,details){
  if(!user||!isAdmin)return;
  try{
   await db.collection("adminLogs").add({
