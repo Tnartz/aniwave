@@ -302,7 +302,7 @@ async function loadFavorites(){
 }
 function renderFavorites(){const el=document.getElementById("favoritesList");if(!el)return;el.innerHTML=favorites.map(name=>{const safe=name.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));return `<p>${safe}</p>`}).join("")||"Пока пусто"}
 function renderProfile(){document.getElementById("loginBox").classList.toggle("hidden",!!user);document.getElementById("profileBox").classList.toggle("hidden",!user);if(user){document.getElementById("profileEmail").textContent=user.email||"Пользователь AniWave";renderFavorites()}}
-async function logout(){await auth.signOut();user=null;favorites=[];renderProfile();renderWatch()}
+async function logout(){await auth.signOut();user=null;favorites=[];renderProfile();renderWatch();renderRecommendations()}
 function initAuth(){
  auth.onAuthStateChanged(async currentUser=>{
   user=currentUser||null;
