@@ -188,6 +188,7 @@ footer{text-align:center;color:#777184;padding:30px 10px;font-size:12px}
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tus-js-client@4.3.1/dist/tus.min.js"></script>
 <script>
 const anime=[
 {name:"Соло-левелинг",genre:"Экшен",year:"2024",rating:"8.9",emoji:"⚔️",img:"https://image.tmdb.org/t/p/w500/lheS6E8JKFLdan3qU8xRQvutCQj.jpg",desc:"Сон Джин-у получает уникальную способность становиться сильнее после каждого испытания."},
@@ -1002,6 +1003,36 @@ async function saveBulkEpisodes(){
  }catch(error){message.textContent="Не удалось добавить пакет: "+error.message}
  finally{button.disabled=false}
 }
+async function uploadVideoToBunny(){
+  const file=document.getElementById("bunnyVideoFile").files[0],button=document.getElementById("bunnyUploadButton"),message=document.getElementById("bunnyUploadMessage"),status=document.getElementById("bunnyUploadStatus"),percent=document.getElementById("bunnyUploadPercent"),bar=document.getElementById("bunnyUploadProgress");
+  if(!user||!isAdmin){message.textContent="Нет прав администратора.";return}
+  if(!file){message.textContent="Сначала выбери видеофайл.";return}
+  if(!file.type.startsWith("video/")){message.textContent="Выбери видеофайл, например MP4 или WebM.";return}
+  if(!window.tus||!window.tus.Upload){message.textContent="Не загрузилась библиотека загрузки. Обнови страницу и попробуй снова.";return}
+  const animeTitle=document.getElementById("adminAnime").value,season=Number(document.getElementById("adminSeason").value),ep=Number(document.getElementById("adminEpisode").value),episodeTitle=document.getElementById("adminEpisodeTitle").value.trim();
+  if(!animeTitle||!Number.isInteger(season)||season<1||!Number.isInteger(ep)||ep<1){message.textContent="Сначала выбери аниме, сезон и номер серии.";return}
+  const title=animeTitle+" · S"+season+"E"+ep+(episodeTitle?" — "+episodeTitle:"");
+  button.disabled=true;percent.textContent="0%";bar.style.width="0%";status.textContent="Создаём видеозапись…";message.textContent="Подготавливаем безопасную загрузку в Bunny Stream.";
+  try{
+   const token=await user.getIdToken(true);
+   const response=await fetch("https://aniwave-bunny-upload.ilya-shashkin-95.workers.dev/api/create-upload",{method:"POST",headers:{"Authorization":"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify({title})});
+   const credentials=await response.json().catch(()=>({}));
+   if(!response.ok)throw new Error(credentials.error||"Сервер не выдал разрешение на загрузку (HTTP "+response.status+").");
+   status.textContent="Загружаем в Bunny…";
+   const upload=new window.tus.Upload(file,{endpoint:credentials.tusEndpoint,retryDelays:[0,3000,5000,10000,20000,60000],headers:{AuthorizationSignature:credentials.signature,AuthorizationExpire:String(credentials.expirationTime),VideoId:credentials.videoId,LibraryId:String(credentials.libraryId)},metadata:{filetype:file.type||"application/octet-stream",title:file.name},onProgress(bytesUploaded,bytesTotal){const p=Math.round(bytesUploaded/bytesTotal*100);percent.textContent=p+"%";bar.style.width=p+"%";status.textContent="Загружено "+(bytesUploaded/1024/1024).toFixed(1)+" из "+(bytesTotal/1024/1024).toFixed(1)+" МБ";},onError(error){message.textContent="Ошибка загрузки: "+error.message;status.textContent="Загрузка не завершена";button.disabled=false;},onSuccess:async function(){
+    const hlsUrl=credentials.playbackUrl,docId=encodeURIComponent(animeTitle)+"_s"+season+"_e"+ep;
+    try{
+     await db.collection("streams").doc(docId).set({animeTitle,season,episode:ep,title:episodeTitle,url:hlsUrl,bunnyVideoId:credentials.videoId,bunnyStatus:"uploaded",updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+     if(!EPISODE_CATALOG[animeTitle])EPISODE_CATALOG[animeTitle]={};if(!EPISODE_CATALOG[animeTitle][season])EPISODE_CATALOG[animeTitle][season]={};EPISODE_CATALOG[animeTitle][season][ep]={url:hlsUrl,title:episodeTitle};
+     if(season===1){if(!HLS_SOURCES[animeTitle])HLS_SOURCES[animeTitle]={};HLS_SOURCES[animeTitle][ep]=hlsUrl}
+     renderAdmin();renderAdminMissingEpisodes();if(currentAnime.name===animeTitle&&selectedSeason===season&&episode===ep)awLoadEpisode();
+     status.textContent="Загрузка завершена";message.textContent="Видео загружено в Bunny. HLS-ссылка сохранена в AniWave. Обработка видео может занять некоторое время.";
+    }catch(saveError){status.textContent="Видео загружено, но не сохранено в каталоге";message.textContent="Скопируй HLS-ссылку вручную: "+hlsUrl+" · Ошибка Firestore: "+saveError.message}
+    button.disabled=false;
+   }});
+   const previous=await upload.findPreviousUploads();if(previous.length)upload.resumeFromPreviousUpload(previous[0]);upload.start();
+  }catch(error){status.textContent="Не удалось начать загрузку";message.textContent=error.message||"Неизвестная ошибка";button.disabled=false}
+ }
 async function saveStream(){
  const message=document.getElementById("adminMessage");
  if(!user||!isAdmin){message.textContent="Нет прав администратора.";return}
@@ -1043,6 +1074,7 @@ async function deleteStream(animeTitle,season,ep){
 }
 document.getElementById("adminSave").addEventListener("click",saveStream);
 document.getElementById("adminBulkSave").addEventListener("click",saveBulkEpisodes);
+document.getElementById("bunnyUploadButton").addEventListener("click",uploadVideoToBunny);
 document.getElementById("adminAddSeason").addEventListener("click",addAnimeSeason);
 document.getElementById("adminReload").addEventListener("click",loadStreams);
 
