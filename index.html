@@ -1674,24 +1674,50 @@ function awSelectSubtitle(value){
 }
 document.getElementById("awSubtitle").addEventListener("change",event=>awSelectSubtitle(event.target.value));
 function awLoadEpisode(sourceIndex){
- const v=awVideo(), episodeData=getEpisodeData(currentAnime.name,selectedSeason,episode),sources=getEpisodeSources(episodeData),selectedSource=sources[Math.max(0,Math.min(sources.length-1,Number(sourceIndex)||0))],source=selectedSource?.url||"";
+ const v=awVideo(),episodeData=getEpisodeData(currentAnime.name,selectedSeason,episode),sources=getEpisodeSources(episodeData);
+ const index=Math.max(0,Math.min(sources.length-1,Number(sourceIndex)||0)),selectedSource=sources[index],source=selectedSource?.url||"";
+ let fallbackStarted=false;
+ const tryNextSource=reason=>{
+  if(fallbackStarted)return;
+  fallbackStarted=true;
+  const nextIndex=index+1;
+  if(nextIndex<sources.length){
+   const next=sources[nextIndex];
+   document.getElementById("awStatus").textContent="Источник не ответил. Пробуем "+(next.name||("источник "+(nextIndex+1)))+"…";
+   const select=document.getElementById("awSource");
+   if(select)select.value=String(nextIndex);
+   renderEpisodeInfo();renderVoiceSourceCards();
+   awLoadEpisode(nextIndex);
+  }else{
+   document.getElementById("awStatus").textContent="Все источники недоступны";
+   awSetMessage("Не удалось загрузить видео","Все добавленные источники не ответили. Попробуй выбрать другой источник позже.");
+   console.warn("AniWave: все источники серии недоступны.",{anime:currentAnime.name,season:selectedSeason,episode,reason});
+  }
+ };
  awDemoMode=false;
+ const select=document.getElementById("awSource");if(select&&sources.length)select.value=String(index);
  awSetSubtitles(selectedSource,episodeData);
  if(awHls){awHls.destroy();awHls=null}
  v.pause();v.removeAttribute("src");v.load();
  document.getElementById("awQuality").innerHTML='<option value="-1">Авто</option>';
  document.getElementById("awPlay").textContent="▶ Играть";
  if(!source){awSetMessage("AniWave Player","Для этой серии пока не добавлены видеoисточники.");document.getElementById("awStatus").textContent="Нет источников";return}
- if(!/^https:\/\//i.test(source)){awSetMessage("Источник не настроен","Для воспроизведения нужна действительная HTTPS-ссылка.");return}
+ if(!/^https:\/\//i.test(source)){tryNextSource("invalid_url");return}
  const isHls=(selectedSource?.type||(/\.m3u8(\?|#|$)/i.test(source)?"hls":"file"))==="hls";
  document.getElementById("awStatus").textContent="Подключаем "+(selectedSource?.name||"источник")+"…";
  if(isHls&&window.Hls&&Hls.isSupported()){
   awHls=new Hls({enableWorker:true});awHls.loadSource(source);awHls.attachMedia(v);
   awHls.on(Hls.Events.MANIFEST_PARSED,()=>{awHls.levels.forEach((level,i)=>{const o=document.createElement("option");o.value=String(i);o.textContent=(level.height?level.height+"p":"Уровень "+(i+1));document.getElementById("awQuality").appendChild(o)});document.getElementById("awStatus").textContent="HLS-поток подключён";});
-  awHls.on(Hls.Events.ERROR,(_event,data)=>{if(data.fatal){document.getElementById("awStatus").textContent="Ошибка HLS: "+data.details;awSetMessage("Не удалось загрузить видео","Проверь URL потока, CORS и доступность источника.");}});
- }else if(isHls&&v.canPlayType("application/vnd.apple.mpegurl")){v.src=source;v.addEventListener("loadedmetadata",()=>document.getElementById("awStatus").textContent="HLS-поток подключён",{once:true})}
- else if(!isHls){v.src=source;v.addEventListener("loadedmetadata",()=>{document.getElementById("awStatus").textContent="Источник подключён"+(selectedSource?.quality?" · "+selectedSource.quality:"")},{once:true});v.addEventListener("error",()=>{document.getElementById("awStatus").textContent="Не удалось воспроизвести файл. Проверь формат, CORS и доступность источника."},{once:true})}
- else{awSetMessage("HLS не поддерживается","Попробуй обновить браузер или открыть сайт в современном браузере.");}
+  awHls.on(Hls.Events.ERROR,(_event,data)=>{if(data.fatal)tryNextSource(data.details||"hls_fatal_error")});
+ }else if(isHls&&v.canPlayType("application/vnd.apple.mpegurl")){
+  v.src=source;
+  v.addEventListener("loadedmetadata",()=>document.getElementById("awStatus").textContent="HLS-поток подключён",{once:true});
+  v.addEventListener("error",()=>tryNextSource("native_hls_error"),{once:true});
+ }else if(!isHls){
+  v.src=source;
+  v.addEventListener("loadedmetadata",()=>{document.getElementById("awStatus").textContent="Источник подключён"+(selectedSource?.quality?" · "+selectedSource.quality:"")},{once:true});
+  v.addEventListener("error",()=>tryNextSource("file_error"),{once:true});
+ }else{tryNextSource("hls_not_supported")}
  try{const saved=JSON.parse(localStorage.getItem(awProgressKey())||"null");if(saved?.time>0)v.addEventListener("loadedmetadata",()=>{if(saved.time<(v.duration||Infinity)-5)v.currentTime=saved.time},{once:true})}catch(_e){}
 }
 
