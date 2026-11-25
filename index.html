@@ -123,6 +123,7 @@ footer{text-align:center;color:#777184;padding:30px 10px;font-size:12px}
  <p class="muted" id="batchPosterMessage" role="status"></p>
  <div id="batchPosterResults" class="muted"></div>
 </div>
+<div class="panel"><h3>Состояние видеотеки</h3><div id="adminLibraryStats" class="profile-stats"><div class="profile-stat"><strong>—</strong><span>Серий в каталоге</span></div><div class="profile-stat"><strong>—</strong><span>Исправных источников</span></div><div class="profile-stat"><strong>—</strong><span>Требуют внимания</span></div><div class="profile-stat"><strong>—</strong><span>Без видеоссылки</span></div><div class="profile-stat"><strong>—</strong><span>Сезонов</span></div><div class="profile-stat"><strong>—</strong><span>Проверено источников</span></div></div><p class="muted" id="adminLibraryStatsNote">Сводка по сериям, уже внесённым в AniWave. Она не угадывает общее число серий в каждом аниме.</p></div>
 <div class="panel"><h3>Управление HLS-источниками</h3>
   <p class="muted">Добавляй сезоны и серии с HTTPS HLS-ссылками .m3u8 только на видео, которое ты вправе распространять. Можно задать название каждой серии. Тестовый поток не является серией аниме.</p>
   <label for="adminAnime">Аниме</label><select class="field" id="adminAnime"></select>
@@ -643,11 +644,37 @@ async function checkAllStreamUrls(){
    else uncertain++;
   }
   if(summary)summary.textContent="Проверка завершена: ✓ исправны — "+ok+" · ✕ проблемы — "+failed+" · ? не удалось подтвердить — "+uncertain+" · всего — "+checks.length;
+  renderAdminLibraryStats();
  }finally{button.disabled=false}
+}
+function renderAdminLibraryStats(){
+ const root=document.getElementById("adminLibraryStats");if(!root)return;
+ let total=0,healthy=0,attention=0,missing=0,checked=0,seasons=0;
+ const names=new Set(Object.keys(EPISODE_CATALOG));
+ names.forEach(name=>{
+  const seasonMap=EPISODE_CATALOG[name]||{};
+  Object.keys(seasonMap).forEach(season=>{
+   seasons++;
+   Object.keys(seasonMap[season]||{}).forEach(ep=>{
+    total++;
+    const item=seasonMap[season][ep]||{};
+    if(!item.url){missing++;return}
+    if(item.lastCheckAt)checked++;
+    if(item.lastCheckStatus==="✓")healthy++;
+    else if(item.lastCheckStatus==="✕"||item.lastCheckStatus==="⚠")attention++;
+   });
+  });
+ });
+ const values=[total,healthy,attention,missing,seasons,checked];
+ const labels=["Серий в каталоге","Исправных источников","Требуют внимания","Без видеоссылки","Сезонов","Проверено источников"];
+ root.innerHTML=values.map((value,index)=>'<div class="profile-stat"><strong>'+value+'</strong><span>'+labels[index]+'</span></div>').join("");
+ const note=document.getElementById("adminLibraryStatsNote");
+ if(note)note.textContent="Учтены только серии, уже внесённые в AniWave. Источники со статусом ? или без проверки не включены в число исправных; CORS не считается доказанной поломкой.";
 }
 function renderAdmin(){
  if(!isAdmin){go("profile");document.getElementById("loginMessage").textContent="Для этой страницы нужны права администратора.";return}
  renderAdminAnimeList();
+ renderAdminLibraryStats();
  const select=document.getElementById("adminAnime");
  if(!select.options.length)select.innerHTML=anime.map(a=>'<option value="'+escapeHTML(a.name)+'">'+escapeHTML(a.name)+'</option>').join("");
  const list=document.getElementById("adminStreams");
