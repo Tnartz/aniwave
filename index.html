@@ -1137,19 +1137,32 @@ async function bindBunnyVideo(videoId){
  const button=document.querySelector('[data-bunny-bind="'+videoId+'"]');
  if(button){button.disabled=true;button.textContent="Сохраняем…"}
  try{
+  const targetBefore=await targetRef.get();
+  const previousVideoId=targetBefore.exists?targetBefore.data().bunnyVideoId||"": "";
+  if(previousVideoId&&previousVideoId!==videoId){
+   const approved=confirm("В этой серии уже привязано другое видео Bunny. Заменить его?\n\nСтарый ролик останется в библиотеке Bunny Stream, но будет отвязан от серии.");
+   if(!approved)return;
+  }
   const existingLinks=await db.collection("streams").where("bunnyVideoId","==",videoId).get();
+  const previousLinks=previousVideoId&&previousVideoId!==videoId?await db.collection("streams").where("bunnyVideoId","==",previousVideoId).get():null;
   await db.runTransaction(async transaction=>{
    const targetSnap=await transaction.get(targetRef);
-   if(targetSnap.exists&&targetSnap.data().bunnyVideoId&&targetSnap.data().bunnyVideoId!==videoId){
-    throw new Error("В этой серии уже есть другое видео Bunny. Сначала освободи серию от старой привязки.");
+   const currentTargetVideoId=targetSnap.exists?targetSnap.data().bunnyVideoId||"": "";
+   if(currentTargetVideoId!==previousVideoId){
+    throw new Error("Привязка серии изменилась. Обнови видеотеку и попробуй снова.");
    }
    const oldDocs=[];
    for(const doc of existingLinks.docs){
-    if(doc.id===targetId)continue;
-    oldDocs.push(doc);
+    if(doc.id!==targetId)oldDocs.push(doc);
    }
    for(const doc of oldDocs){
     transaction.set(doc.ref,{bunnyVideoId:firebase.firestore.FieldValue.delete(),bunnyStatus:firebase.firestore.FieldValue.delete(),url:firebase.firestore.FieldValue.delete(),updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+   }
+   if(previousLinks){
+    for(const doc of previousLinks.docs){
+     if(doc.id===targetId)continue;
+     transaction.set(doc.ref,{bunnyVideoId:firebase.firestore.FieldValue.delete(),bunnyStatus:firebase.firestore.FieldValue.delete(),url:firebase.firestore.FieldValue.delete(),updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+    }
    }
    transaction.set(targetRef,{animeTitle,season,episode,title:video.title||"",url,bunnyVideoId:videoId,bunnyStatus:"uploaded",deleted:false,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
   });
@@ -1163,7 +1176,7 @@ async function bindBunnyVideo(videoId){
   if(!EPISODE_CATALOG[animeTitle][season])EPISODE_CATALOG[animeTitle][season]={};
   EPISODE_CATALOG[animeTitle][season][episode]={url,title:video.title||""};
   if(season===1){if(!HLS_SOURCES[animeTitle])HLS_SOURCES[animeTitle]={};HLS_SOURCES[animeTitle][episode]=url}
-  message.textContent="Видео привязано к «"+animeTitle+"», сезон "+season+", серия "+episode+".";
+  message.textContent=(previousVideoId&&previousVideoId!==videoId?"Видео заменено. Старый ролик сохранён в Bunny Stream. ":"Видео привязано. ")+"«"+animeTitle+"», сезон "+season+", серия "+episode+".";
   await loadBunnyVideos(bunnyCurrentPage);
   renderAdmin();
  }catch(error){message.textContent="Не удалось сохранить привязку: "+error.message}
