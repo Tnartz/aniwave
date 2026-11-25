@@ -515,18 +515,29 @@ function getYouTubeVideoId(value){
 let awVariantTab="all";
 function getAllEpisodeVariants(){
  const grouped=new Map();
+ const addVariant=(studio,category,source,season,ep,index,logo,views)=>{
+  const key=studio.toLocaleLowerCase("ru")+"|"+category;
+  if(!grouped.has(key))grouped.set(key,{key,studio,category,logo:logo||"",views:0,episodes:[],sources:[]});
+  const item=grouped.get(key);
+  if(!item.episodes.some(entry=>entry.season===season&&entry.episode===ep))item.episodes.push({season,episode:ep});
+  item.sources.push({season,episode:ep,index,source});
+  item.views=Math.max(item.views,Number(views)||0);
+  if(!item.logo&&logo)item.logo=logo;
+ };
  getAvailableSeasons(currentAnime.name).forEach(season=>{
   const entries=EPISODE_CATALOG[currentAnime.name]?.[season]||{};
   Object.keys(entries).map(Number).forEach(ep=>getEpisodeSources(getEpisodeData(currentAnime.name,season,ep)).forEach((source,index)=>{
    const studio=String(source.studio||source.name||"Другой источник").trim();
-   const category=(source.category==="subtitles"||source.kind==="subtitles"||source.type==="subtitles"||source.subtitlesOnly)?"subtitles":"audio";
-   const key=studio.toLocaleLowerCase("ru")+"|"+category;
-   if(!grouped.has(key))grouped.set(key,{key,studio,category,logo:source.logoUrl||source.logo||"",views:0,episodes:[],sources:[]});
-   const item=grouped.get(key);
-   if(!item.episodes.some(entry=>entry.season===season&&entry.episode===ep))item.episodes.push({season,episode:ep});
-   item.sources.push({season,episode:ep,index,source});
-   item.views=Math.max(item.views,Number(source.views)||0);
-   if(!item.logo)item.logo=source.logoUrl||source.logo||"";
+   addVariant(studio,"audio",source,season,ep,index,source.logoUrl||source.logo||"",source.views);
+   (Array.isArray(source.subtitles)?source.subtitles:[]).forEach(track=>{
+    const language=String(track.label||track.language||"Субтитры").trim();
+    addVariant(studio+" · "+language,"subtitles",source,season,ep,index,source.logoUrl||source.logo||"",source.views);
+   });
+   if(source.category==="subtitles"||source.kind==="subtitles"||source.type==="subtitles"||source.subtitlesOnly){
+    const audioKey=studio.toLocaleLowerCase("ru")+"|audio";
+    grouped.delete(audioKey);
+    addVariant(studio,"subtitles",source,season,ep,index,source.logoUrl||source.logo||"",source.views);
+   }
   }));
  });
  return [...grouped.values()].sort((a,b)=>b.episodes.length-a.episodes.length||a.studio.localeCompare(b.studio,"ru"));
