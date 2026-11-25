@@ -188,6 +188,7 @@ function initAuth(){
   }else{favorites=[];renderFavorites()}
   document.getElementById("adminNav").classList.toggle("hidden",!isAdmin);
   renderProfile();renderWatch();
+  if(isAdmin){try{await seedJujutsuKaisen()}catch(error){console.error("Не удалось добавить стартовое аниме",error)}}
   await loadAnimeCatalog();
   await loadStreams();
  });
@@ -205,6 +206,24 @@ const HLS_SOURCES = {
  "Ван-Пис": {}
 };
 let isAdmin=false;
+async function seedJujutsuKaisen(){
+ if(!user||!isAdmin)return;
+ const name="Магическая битва";
+ const ref=db.collection("animeCatalog").doc(encodeURIComponent(name));
+ const existing=await ref.get();
+ if(existing.exists)return;
+ await ref.set({
+  name,
+  genre:"Экшен, фэнтези, сверхъестественное",
+  year:"2020",
+  rating:"8.5",
+  emoji:"👹",
+  img:"",
+  desc:"Юдзи Итадори оказывается втянут в мир проклятий после встречи с опасным древним артефактом. Теперь ему предстоит сражаться с проклятиями и раскрывать тайны мира магов.",
+  createdAt:firebase.firestore.FieldValue.serverTimestamp()
+ });
+ console.log("Добавлено в каталог:",name);
+}
 async function loadAnimeCatalog(){
  try{
   const snapshot=await db.collection("animeCatalog").get();
