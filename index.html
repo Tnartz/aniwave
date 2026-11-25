@@ -169,7 +169,52 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 let currentFilter="Все",currentAnime=anime[0],episode=1,user=null,favorites=[],authMode="login";
 function escapeHTML(value){return String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]))}
-function card(a){const idx=anime.indexOf(a);const poster=a.img?'<img src="'+escapeHTML(a.img)+'" alt="Постер: '+escapeHTML(a.name)+'" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'">':"";return '<article class="anime-card" onclick="openAnimeByIndex('+idx+')"><div class="poster">'+poster+'<div class="poster-fallback" style="display:'+(a.img?'none':'grid')+'">'+escapeHTML(a.emoji||"🎬")+'<small>'+escapeHTML(a.name)+'</small></div><span class="poster-quality">HD</span><span class="poster-score">★ '+escapeHTML(a.rating)+'</span></div><div class="card-info"><strong>'+escapeHTML(a.name)+'</strong><span class="meta">'+escapeHTML(a.year)+' · '+escapeHTML(a.genre)+'</span></div></article>'}
+const AUTO_POSTER_TITLES={
+ "Соло-левелинг":"Solo Leveling","Атака титанов":"Attack on Titan","Клинок, рассекающий демонов":"Kimetsu no Yaiba","Магическая битва":"Jujutsu Kaisen","Человек-бензопила":"Chainsaw Man","Ванпанчмен":"One Punch Man","Твоё имя":"Kimi no Na wa","Форма голоса":"Koe no Katachi","Ван-Пис":"One Piece","Тетрадь смерти":"Death Note","Наруто":"Naruto","Охотник × Охотник":"Hunter x Hunter 2011","Стальной алхимик: Братство":"Fullmetal Alchemist Brotherhood","Провожающая в последний путь Фрирен":"Sousou no Frieren","Семья шпиона":"Spy x Family","Врата Штейна":"Steins Gate","Волейбол!!":"Haikyuu","Моб Психо 100":"Mob Psycho 100","Токийский гуль":"Tokyo Ghoul"
+};
+const posterLookupPromises={};
+let posterApiQueue=Promise.resolve(),posterLastRequest=0;
+function getAutoPoster(name){
+ const cached=localStorage.getItem("aniwaveAutoPoster:"+name);
+ if(cached)return Promise.resolve(cached);
+ if(posterLookupPromises[name])return posterLookupPromises[name];
+ const query=AUTO_POSTER_TITLES[name]||name;
+ posterLookupPromises[name]=posterApiQueue=posterApiQueue.then(async()=>{
+  const wait=Math.max(0,400-(Date.now()-posterLastRequest));
+  if(wait)await new Promise(resolve=>setTimeout(resolve,wait));
+  posterLastRequest=Date.now();
+  const response=await fetch("https://api.tenrai.org/v1/anime?q="+encodeURIComponent(query)+"&limit=5&sfw-strict");
+  if(!response.ok)throw new Error("Anime poster API: "+response.status);
+  const payload=await response.json();
+  const items=Array.isArray(payload.data)?payload.data:[];
+  const norm=value=>String(value||"").toLowerCase().replace(/[^a-z0-9]+/g,"");
+  const exact=items.find(item=>[item.title?.english,item.title?.romaji,item.title?.default,item.title_english,item.title].some(title=>norm(title)===norm(query)));
+  const item=exact||items[0];
+  const images=item?.images||{};
+  const url=images.webp?.large_image_url||images.webp?.image_url||images.jpg?.large_image_url||images.jpg?.image_url;
+  if(!url)throw new Error("Постер не найден");
+  localStorage.setItem("aniwaveAutoPoster:"+name,url);
+  if(user&&isAdmin){
+   db.collection("animeCatalog").doc(encodeURIComponent(name)).set({name,img:url,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true}).catch(error=>console.warn("Не удалось сохранить авто-постер",error));
+  }
+  return url;
+ }).catch(error=>{delete posterLookupPromises[name];console.warn("Не удалось автоматически найти постер для "+name,error);return "";});
+ return posterLookupPromises[name];
+}
+async function handlePosterError(img,index){
+ const item=anime[index];
+ img.style.display="none";
+ const fallback=img.nextElementSibling;
+ if(fallback)fallback.style.display="grid";
+ if(!item||img.dataset.autoTried==="1")return;
+ img.dataset.autoTried="1";
+ const url=await getAutoPoster(item.name);
+ if(!url)return;
+ img.onload=()=>{img.style.display="block";if(fallback)fallback.style.display="none"};
+ img.onerror=()=>{img.style.display="none";if(fallback)fallback.style.display="grid"};
+ img.src=url;
+}
+function card(a){const idx=anime.indexOf(a);const poster='<img src="'+escapeHTML(a.img||"data:image/png;base64,AAAA")+'" alt="Постер: '+escapeHTML(a.name)+'" loading="lazy" onerror="handlePosterError(this,'+idx+')">';return '<article class="anime-card" onclick="openAnimeByIndex('+idx+')"><div class="poster">'+poster+'<div class="poster-fallback" style="display:'+(a.img?'none':'grid')+'">'+escapeHTML(a.emoji||"🎬")+'<small>'+escapeHTML(a.name)+'</small></div><span class="poster-quality">HD</span><span class="poster-score">★ '+escapeHTML(a.rating)+'</span></div><div class="card-info"><strong>'+escapeHTML(a.name)+'</strong><span class="meta">'+escapeHTML(a.year)+' · '+escapeHTML(a.genre)+'</span></div></article>'}
 function renderCatalog(){let q=(document.getElementById("search")?.value||"").toLowerCase();document.getElementById("catalogGrid").innerHTML=anime.filter(a=>(currentFilter==="Все"||a.genre===currentFilter)&&a.name.toLowerCase().includes(q)).map(card).join("")||'<p class="muted">Ничего не найдено.</p>'}
 function renderHome(){document.getElementById("homeGrid").innerHTML=anime.slice(0,4).map(card).join("")}
 function go(page){document.querySelectorAll(".page").forEach(x=>x.classList.add("hidden"));document.getElementById(page).classList.remove("hidden");document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("active",x.dataset.page===page));if(page==="catalog")renderCatalog();if(page==="profile")renderProfile();if(page==="admin")renderAdmin();window.scrollTo({top:0,behavior:"smooth"})}
