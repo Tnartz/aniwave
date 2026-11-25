@@ -19,6 +19,7 @@ main{max-width:1100px;margin:auto;padding:12px 22px 60px}.hero{min-height:330px;
 footer{text-align:center;color:#777184;padding:30px 10px;font-size:12px}
 @media(max-width:980px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:760px){.hero{min-height:390px;padding:22px}.home-feature-grid{grid-template-columns:1fr}.continue-shelf{grid-template-columns:1fr}.home-section .grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hero-arrows{margin-top:14px}.detail-overview{grid-template-columns:1fr 1fr}.detail-stat:last-child{grid-column:1/-1}.detail-hero{min-height:540px;align-items:flex-end;padding:22px}.detail-poster{width:112px;height:168px;right:20px;top:20px;transform:none}.detail-content{padding-top:180px}.detail-section-head{align-items:flex-start;flex-direction:column;gap:4px}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.poster{height:230px}header{align-items:flex-start;flex-direction:column}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.poster{height:200px}.hero{min-height:300px;padding:24px}.plan-grid{grid-template-columns:1fr}.episodes{grid-template-columns:repeat(5,1fr)}.section-head{align-items:flex-start;flex-direction:column;gap:12px}.search{max-width:none}}
 
+.button{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;border-radius:12px;padding:11px 15px;font-weight:700}.button.secondary{background:#29243b;color:#e9e3ff;border:1px solid #42385d}.button.secondary:hover{border-color:#a78bfa;background:#392954}
 /* AniWave visual polish */
 .detail-hero{position:relative;isolation:isolate;min-height:370px;border:1px solid #594078;border-radius:28px;overflow:hidden;padding:34px;display:flex;align-items:center;background:linear-gradient(120deg,#100c1d 0%,#1b1230 58%,#24153b 100%);box-shadow:0 24px 70px #0006}
 .detail-backdrop{position:absolute;inset:0;z-index:-1;background-position:center;background-size:cover;opacity:.72;mask-image:linear-gradient(90deg,#000 0%,#0008 65%,transparent 100%)}
@@ -110,7 +111,7 @@ footer{text-align:center;color:#777184;padding:30px 10px;font-size:12px}
     <button type="button" id="awFullscreen" title="Полный экран (F)">⛶</button>
   </div>
   <div class="aw-status" id="awStatus">Ожидает HLS-источник (.m3u8)</div>
-  <div class="row" style="justify-content:flex-end;margin-top:8px"><button type="button" class="secondary" id="awDemoTest">▶ Проверить плеер (демо)</button></div>
+  <div class="row" style="justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px"><a class="button secondary" id="officialWatchLink" href="https://www.crunchyroll.com/series/GDKHZEJ0K/solo-leveling" target="_blank" rel="noopener noreferrer">↗ Официальный просмотр</a><button type="button" class="secondary" id="awDemoTest">▶ Проверить плеер (демо)</button></div>
 </div>
   <div class="row" style="justify-content:space-between;margin-top:14px"><button class="secondary" onclick="changeEpisode(-1)">← Предыдущая</button><button onclick="changeEpisode(1)">Следующая →</button></div>
   <div class="episodes" id="episodes"></div>
