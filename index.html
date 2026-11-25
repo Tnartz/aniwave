@@ -1153,9 +1153,19 @@ async function bindBunnyVideo(videoId){
    }
    transaction.set(targetRef,{animeTitle,season,episode,title:video.title||"",url,bunnyVideoId:videoId,bunnyStatus:"uploaded",deleted:false,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
   });
+  existingLinks.docs.forEach(doc=>{
+   if(doc.id===targetId)return;
+   const old=doc.data(),oldAnime=old.animeTitle,oldSeason=Number(old.season)||1,oldEpisode=Number(old.episode)||1;
+   if(EPISODE_CATALOG[oldAnime]?.[oldSeason])delete EPISODE_CATALOG[oldAnime][oldSeason][oldEpisode];
+   if(oldSeason===1&&HLS_SOURCES[oldAnime])delete HLS_SOURCES[oldAnime][oldEpisode];
+  });
+  if(!EPISODE_CATALOG[animeTitle])EPISODE_CATALOG[animeTitle]={};
+  if(!EPISODE_CATALOG[animeTitle][season])EPISODE_CATALOG[animeTitle][season]={};
+  EPISODE_CATALOG[animeTitle][season][episode]={url,title:video.title||""};
+  if(season===1){if(!HLS_SOURCES[animeTitle])HLS_SOURCES[animeTitle]={};HLS_SOURCES[animeTitle][episode]=url}
   message.textContent="Видео привязано к «"+animeTitle+"», сезон "+season+", серия "+episode+".";
   await loadBunnyVideos(bunnyCurrentPage);
-  await loadStreams();
+  renderAdmin();
  }catch(error){message.textContent="Не удалось сохранить привязку: "+error.message}
  finally{if(button){button.disabled=false;button.textContent="Сохранить привязку"}}
 }
