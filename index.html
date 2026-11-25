@@ -102,7 +102,7 @@ async function submitAuth(){
  const message=document.getElementById("loginMessage");message.textContent="Подключаемся...";
  if(!email.includes("@")||password.length<6){message.textContent="Проверь email и пароль (минимум 6 символов).";return}
  const result=authMode==="signup"
-  ?await supabaseClient.auth.signUp({email,password,options:{emailRedirectTo:window.location.href.split("#")[0]}})
+  ?await supabaseClient.auth.signUp({email,password,options:{emailRedirectTo:"https://tnartz.github.io/aniwave/"}})
   :await supabaseClient.auth.signInWithPassword({email,password});
  if(result.error){message.textContent="Ошибка: "+result.error.message;return}
  if(authMode==="signup"&&!result.data.session){message.textContent="Аккаунт создан. Проверь почту и подтверди email, затем войди.";return}
