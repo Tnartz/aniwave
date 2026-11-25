@@ -22,7 +22,7 @@ footer{text-align:center;color:#777184;padding:30px 10px;font-size:12px}
 </head>
 <body>
 <header><div class="logo">Ani<span>Wave</span></div><nav id="nav">
-<button data-page="home" class="active">Главная</button><button data-page="catalog">Каталог</button><button data-page="watch">Смотреть</button><button data-page="profile">Профиль</button><button data-page="premium">Premium</button>
+<button data-page="home" class="active">Главная</button><button data-page="catalog">Каталог</button><button data-page="watch">Смотреть</button><button data-page="profile">Профиль</button><button data-page="premium">Premium</button><button data-page="admin" id="adminNav" class="hidden">Админка</button>
 </nav></header>
 <main>
 <section id="home" class="page">
@@ -71,6 +71,18 @@ footer{text-align:center;color:#777184;padding:30px 10px;font-size:12px}
 <div class="section-head"><h2>Личный кабинет</h2></div>
 <div class="panel" id="loginBox"><h3 id="authHeading">Войти в AniWave</h3><p class="muted">Войди или создай аккаунт AniWave с помощью email и пароля.</p><label>Email</label><input class="field" id="email" type="email" autocomplete="email" placeholder="you@example.com"><label>Пароль</label><input class="field" id="password" type="password" autocomplete="current-password" placeholder="Не менее 6 символов"><div class="row"><button id="authSubmit" onclick="submitAuth()">Войти</button><button class="secondary" id="authSwitch" onclick="toggleAuthMode()">Создать аккаунт</button></div><p class="meta" id="loginMessage" role="status"></p></div>
 <div class="panel hidden" id="profileBox"><h3 id="profileEmail"></h3><p class="muted">Аккаунт AniWave · Free Member</p><h3>Избранное</h3><div id="favoritesList" class="muted">Загрузка...</div><button class="secondary" onclick="logout()">Выйти</button></div></section>
+<section id="admin" class="page hidden">
+<div class="section-head"><h2>Админ-панель AniWave</h2><span class="meta">Управление HLS-источниками</span></div>
+<div class="panel">
+  <p class="muted">Добавляй только HTTPS HLS-ссылки .m3u8 на видео, права на распространение которых у тебя есть. Тестовый поток не является серией аниме.</p>
+  <label for="adminAnime">Аниме</label><select class="field" id="adminAnime"></select>
+  <label for="adminEpisode">Номер серии</label><input class="field" id="adminEpisode" type="number" min="1" max="999" value="1">
+  <label for="adminUrl">HLS URL (.m3u8)</label><input class="field" id="adminUrl" type="url" placeholder="https://example.com/episode.m3u8">
+  <div class="row"><button id="adminSave" type="button">Сохранить источник</button><button class="secondary" id="adminReload" type="button">Обновить список</button></div>
+  <p id="adminMessage" class="muted" role="status"></p>
+</div>
+<div class="panel"><h3>Добавленные источники</h3><div id="adminStreams" class="muted">Загрузка...</div></div>
+</section>
 <section id="premium" class="page hidden">
 <div class="section-head"><h2>AniWave Premium</h2></div><p class="muted">Выбери план, который подходит именно тебе. Цены демонстрационные, оплата не подключена.</p><div class="plan-grid">
 <div class="plan"><h3>Free</h3><div class="price">0 €</div><ul><li>Каталог и поиск</li><li>Трейлеры</li><li>Избранное</li></ul><button class="secondary" onclick="go('catalog')">Начать бесплатно</button></div>
@@ -109,7 +121,7 @@ let currentFilter="Все",currentAnime=anime[0],episode=1,user=null,favorites=[
 function card(a){return `<article class="anime-card" onclick="openAnime('${a.name.replace(/'/g,"\\'")}')"><div class="poster"><img src="${a.img}" alt="Постер: ${a.name}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='grid'"><div class="poster-fallback" style="display:none">${a.emoji}</div><span class="poster-quality">HD</span><span class="poster-score">★ ${a.rating}</span></div><div class="card-info"><strong>${a.name}</strong><span class="meta">${a.year} · ${a.genre}</span></div></article>`}
 function renderCatalog(){let q=(document.getElementById("search")?.value||"").toLowerCase();document.getElementById("catalogGrid").innerHTML=anime.filter(a=>(currentFilter==="Все"||a.genre===currentFilter)&&a.name.toLowerCase().includes(q)).map(card).join("")||'<p class="muted">Ничего не найдено.</p>'}
 function renderHome(){document.getElementById("homeGrid").innerHTML=anime.slice(0,4).map(card).join("")}
-function go(page){document.querySelectorAll(".page").forEach(x=>x.classList.add("hidden"));document.getElementById(page).classList.remove("hidden");document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("active",x.dataset.page===page));if(page==="catalog")renderCatalog();if(page==="profile")renderProfile();window.scrollTo({top:0,behavior:"smooth"})}
+function go(page){document.querySelectorAll(".page").forEach(x=>x.classList.add("hidden"));document.getElementById(page).classList.remove("hidden");document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("active",x.dataset.page===page));if(page==="catalog")renderCatalog();if(page==="profile")renderProfile();if(page==="admin")renderAdmin();window.scrollTo({top:0,behavior:"smooth"})}
 function openAnime(name){currentAnime=anime.find(a=>a.name===name)||anime[0];episode=1;document.getElementById("watchTitle").textContent=currentAnime.name;document.getElementById("watchDesc").textContent=currentAnime.desc;document.getElementById("detailGenre").textContent=currentAnime.genre;document.getElementById("detailYear").textContent=currentAnime.year;document.getElementById("detailRating").textContent="★ "+currentAnime.rating;document.getElementById("detailPoster").src=currentAnime.img;document.getElementById("detailPoster").alt="Постер: "+currentAnime.name;document.getElementById("detailBackdrop").style.backgroundImage="linear-gradient(90deg,rgba(9,9,20,.98),rgba(9,9,20,.82) 48%,rgba(9,9,20,.18)),url('"+currentAnime.img+"')";renderWatch();go("watch")}
 function renderWatch(){document.getElementById("episodeLabel").textContent=`Сезон 1 · Серия ${episode}`;document.getElementById("episodes").innerHTML=Array.from({length:12},(_,i)=>`<button class="${episode===i+1?"selected":""}" onclick="episode=${i+1};renderWatch();awLoadEpisode()">${i+1}</button>`).join("");document.getElementById("favButton").textContent=favorites.includes(currentAnime.name)?"♥ В избранном":"♡ В избранное";if(document.getElementById("awVideo"))awLoadEpisode()}
 function changeEpisode(n){episode=Math.max(1,Math.min(12,episode+n));renderWatch()}
@@ -151,8 +163,18 @@ async function logout(){await auth.signOut();user=null;favorites=[];renderProfil
 function initAuth(){
  auth.onAuthStateChanged(async currentUser=>{
   user=currentUser||null;
-  if(user) await loadFavorites(); else {favorites=[];renderFavorites()}
+  isAdmin=false;
+  document.getElementById("adminNav").classList.add("hidden");
+  if(user){
+   try{
+    const tokenResult=await user.getIdTokenResult(true);
+    isAdmin=tokenResult.claims.admin===true;
+   }catch(error){console.error("Не удалось проверить роль администратора",error)}
+   await loadFavorites();
+  }else{favorites=[];renderFavorites()}
+  document.getElementById("adminNav").classList.toggle("hidden",!isAdmin);
   renderProfile();renderWatch();
+  await loadStreams();
  });
 }
 // Add only HLS URLs that you own or are licensed to stream. Leave empty until a source is approved.
@@ -167,6 +189,71 @@ const HLS_SOURCES = {
  "Форма голоса": {},
  "Ван-Пис": {}
 };
+let isAdmin=false;
+async function loadStreams(){
+ try{
+  const snapshot=await db.collection("streams").get();
+  snapshot.forEach(doc=>{
+   const data=doc.data();
+   if(data.animeTitle && Number.isInteger(data.episode) && data.url){
+    if(!HLS_SOURCES[data.animeTitle]) HLS_SOURCES[data.animeTitle]={};
+    HLS_SOURCES[data.animeTitle][data.episode]=data.url;
+   }
+  });
+  if(document.getElementById("adminStreams")) renderAdmin();
+  if(document.getElementById("watch")&&!document.getElementById("watch").classList.contains("hidden")) awLoadEpisode();
+ }catch(error){
+  console.warn("Не удалось загрузить публичные HLS-источники. Проверь правила Firestore.",error);
+  const msg=document.getElementById("adminMessage");
+  if(msg)msg.textContent="Не удалось прочитать streams. Проверь правила Firestore.";
+ }
+}
+function renderAdmin(){
+ if(!isAdmin){go("profile");document.getElementById("loginMessage").textContent="Для этой страницы нужны права администратора.";return}
+ const select=document.getElementById("adminAnime");
+ if(!select.options.length)select.innerHTML=anime.map(a=>'<option value="'+a.name.replace(/&/g,"&amp;").replace(/"/g,"&quot;")+'">'+a.name+'</option>').join("");
+ const list=document.getElementById("adminStreams");
+ const rows=[];
+ Object.keys(HLS_SOURCES).forEach(name=>Object.keys(HLS_SOURCES[name]||{}).forEach(ep=>{
+  const url=HLS_SOURCES[name][ep];
+  const safeName=name.replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+  rows.push('<div class="row" style="justify-content:space-between;border-bottom:1px solid #332b48;padding:10px 0"><span>'+safeName+' · серия '+ep+'</span><button class="secondary" type="button" data-delete-stream="'+encodeURIComponent(name)+'" data-episode="'+ep+'">Удалить</button></div>');
+ }));
+ list.innerHTML=rows.join("")||"Пока нет добавленных источников.";
+ list.querySelectorAll("[data-delete-stream]").forEach(button=>button.addEventListener("click",()=>deleteStream(decodeURIComponent(button.dataset.deleteStream),Number(button.dataset.episode))));
+}
+async function saveStream(){
+ const message=document.getElementById("adminMessage");
+ if(!user||!isAdmin){message.textContent="Нет прав администратора.";return}
+ const animeTitle=document.getElementById("adminAnime").value;
+ const ep=Number(document.getElementById("adminEpisode").value);
+ const url=document.getElementById("adminUrl").value.trim();
+ if(!Number.isInteger(ep)||ep<1||ep>999){message.textContent="Укажи номер серии от 1 до 999.";return}
+ if(!/^https:\/\//i.test(url)||!/(\.m3u8)(\?|#|$)/i.test(url)){message.textContent="Нужна HTTPS-ссылка на HLS-плейлист .m3u8.";return}
+ try{
+  const id=encodeURIComponent(animeTitle)+"_"+ep;
+  await db.collection("streams").doc(id).set({animeTitle,episode:ep,url,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+  if(!HLS_SOURCES[animeTitle])HLS_SOURCES[animeTitle]={};
+  HLS_SOURCES[animeTitle][ep]=url;
+  document.getElementById("adminUrl").value="";
+  message.textContent="Источник сохранён.";
+  renderAdmin();
+  if(currentAnime.name===animeTitle&&episode===ep)awLoadEpisode();
+ }catch(error){message.textContent="Не удалось сохранить: "+error.message}
+}
+async function deleteStream(animeTitle,ep){
+ if(!user||!isAdmin)return;
+ try{
+  await db.collection("streams").doc(encodeURIComponent(animeTitle)+"_"+ep).delete();
+  if(HLS_SOURCES[animeTitle])delete HLS_SOURCES[animeTitle][ep];
+  document.getElementById("adminMessage").textContent="Источник удалён.";
+  renderAdmin();
+  if(currentAnime.name===animeTitle&&episode===ep)awLoadEpisode();
+ }catch(error){document.getElementById("adminMessage").textContent="Не удалось удалить: "+error.message}
+}
+document.getElementById("adminSave").addEventListener("click",saveStream);
+document.getElementById("adminReload").addEventListener("click",loadStreams);
+
 let awHls=null;
 const awVideo=()=>document.getElementById("awVideo");
 function awFormatTime(value){if(!Number.isFinite(value))return "0:00";const m=Math.floor(value/60),s=Math.floor(value%60);return m+":"+String(s).padStart(2,"0")}
