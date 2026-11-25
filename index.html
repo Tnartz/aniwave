@@ -95,6 +95,15 @@ footer{text-align:center;color:#777184;padding:30px 10px;font-size:12px}
   <div class="row"><button id="createAnime" type="button">Добавить в каталог</button></div>
   <p id="animeAdminMessage" class="muted" role="status"></p><div id="adminAnimeList" class="muted"></div>
 </div>
+<div class="panel">
+ <h3>Обновить постер существующего аниме</h3>
+ <p class="muted">Выбери тайтл и загрузи официальный постер или изображение, на которое у тебя есть права. Ссылка сохранится в Cloudinary и каталоге AniWave.</p>
+ <label for="posterAnimeSelect">Аниме</label><select class="field" id="posterAnimeSelect"></select>
+ <label for="existingPosterFile">Файл постера (JPG, PNG или WebP, до 5 МБ)</label><input class="field" id="existingPosterFile" type="file" accept="image/jpeg,image/png,image/webp">
+ <img id="existingPosterPreview" class="hidden" alt="Предпросмотр нового постера" style="max-width:150px;max-height:220px;object-fit:cover;border-radius:12px;margin:8px 0">
+ <div class="row"><button type="button" id="updateExistingPoster">Загрузить и заменить постер</button></div>
+ <p class="muted" id="existingPosterMessage" role="status"></p>
+</div>
 <div class="panel"><h3>Управление HLS-источниками</h3>
   <p class="muted">Добавляй только HTTPS HLS-ссылки .m3u8 на видео, права на распространение которых у тебя есть. Тестовый поток не является серией аниме.</p>
   <label for="adminAnime">Аниме</label><select class="field" id="adminAnime"></select>
@@ -339,6 +348,42 @@ async function loadStreams(){
   if(msg)msg.textContent="Не удалось прочитать streams. Проверь правила Firestore.";
  }
 }
+function refreshPosterAnimeSelect(){
+ const select=document.getElementById("posterAnimeSelect");if(!select)return;
+ const current=select.value;
+ select.innerHTML=anime.map(a=>'<option value="'+escapeHTML(a.name)+'">'+escapeHTML(a.name)+'</option>').join("");
+ if(anime.some(a=>a.name===current))select.value=current;
+}
+async function updateExistingAnimePoster(){
+ const msg=document.getElementById("existingPosterMessage");
+ if(!user||!isAdmin){msg.textContent="Нет прав администратора.";return}
+ const name=document.getElementById("posterAnimeSelect").value;
+ const file=document.getElementById("existingPosterFile").files[0];
+ if(!name||!file){msg.textContent="Выбери аниме и файл постера.";return}
+ if(!["image/jpeg","image/png","image/webp"].includes(file.type)||file.size>5*1024*1024){msg.textContent="Нужен JPG, PNG или WebP до 5 МБ.";return}
+ try{
+  msg.textContent="Загружаю изображение в Cloudinary…";
+  const url=await uploadAnimePosterFile(file);
+  const item=anime.find(a=>a.name===name);
+  if(!item)throw new Error("Аниме не найдено в каталоге.");
+  const record={name:item.name,genre:item.genre||"Другое",year:String(item.year||""),rating:String(item.rating||"0.0"),emoji:item.emoji||"🎬",img:url,desc:item.desc||"",updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
+  await db.collection("animeCatalog").doc(encodeURIComponent(name)).set(record,{merge:true});
+  item.img=url;item.custom=true;
+  document.getElementById("existingPosterFile").value="";
+  document.getElementById("existingPosterPreview").classList.add("hidden");
+  msg.textContent="Готово! Постер "+name+" обновлён и сохранён в Cloudinary.";
+  renderHome();renderCatalog();renderWatch();renderAdminAnimeList();
+ }catch(error){msg.textContent="Не удалось обновить постер: "+error.message}
+}
+async function uploadAnimePosterFile(file){
+ const config=JSON.parse(localStorage.getItem("aniwaveCloudinaryConfig")||JSON.stringify({cloud:"zcuhiffb",preset:"aniwave_posters"}));
+ if(!config.cloud||!config.preset)throw new Error("Сначала сохрани Cloud name и unsigned upload preset.");
+ const form=new FormData();form.append("file",file);form.append("upload_preset",config.preset);
+ const response=await fetch("https://api.cloudinary.com/v1_1/"+encodeURIComponent(config.cloud)+"/image/upload",{method:"POST",body:form});
+ const result=await response.json();
+ if(!response.ok||!result.secure_url)throw new Error(result.error?.message||"Cloudinary не принял изображение.");
+ return result.secure_url;
+}
 function renderAdmin(){
  if(!isAdmin){go("profile");document.getElementById("loginMessage").textContent="Для этой страницы нужны права администратора.";return}
  renderAdminAnimeList();
@@ -426,6 +471,8 @@ document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()
 
 document.getElementById("createAnime").addEventListener("click",addAnimeFromAdmin);
 document.getElementById("saveCloudinaryConfig").addEventListener("click",saveCloudinaryConfig);
+document.getElementById("existingPosterFile").addEventListener("change",()=>{const f=document.getElementById("existingPosterFile").files[0],p=document.getElementById("existingPosterPreview");if(!f){p.classList.add("hidden");return}p.src=URL.createObjectURL(f);p.classList.remove("hidden")});
+document.getElementById("updateExistingPoster").addEventListener("click",updateExistingAnimePoster);
 document.getElementById("newAnimePosterFile").addEventListener("change",previewAnimePoster);
 loadCloudinaryConfig();
 renderHome();renderCatalog();renderWatch();initAuth();
