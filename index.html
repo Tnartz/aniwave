@@ -333,6 +333,8 @@ function initAuth(){
   await loadAnimeCatalog();
   await loadStreams();
   await loadCloudProgress();
+  await loadAnimeReviews();
+  renderProfileStats();
  });
 }
 // Add only HLS URLs that you own or are licensed to stream. Leave empty until a source is approved.
