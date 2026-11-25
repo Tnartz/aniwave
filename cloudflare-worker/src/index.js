@@ -35,7 +35,7 @@ async function getFirebaseKey(kid) {
 
 async function requireAdmin(request) {
   const header = request.headers.get("Authorization") || "";
-  const match = header.match(/^Bearer\\s+(.+)$/i);
+  const match = header.match(/^Bearer\s+(.+)$/i);
   if (!match) return false;
   try {
     const parts = match[1].split(".");
