@@ -72,8 +72,20 @@ footer{text-align:center;color:#777184;padding:30px 10px;font-size:12px}
 <div class="panel" id="loginBox"><h3 id="authHeading">Войти в AniWave</h3><p class="muted">Войди или создай аккаунт AniWave с помощью email и пароля.</p><label>Email</label><input class="field" id="email" type="email" autocomplete="email" placeholder="you@example.com"><label>Пароль</label><input class="field" id="password" type="password" autocomplete="current-password" placeholder="Не менее 6 символов"><div class="row"><button id="authSubmit" onclick="submitAuth()">Войти</button><button class="secondary" id="authSwitch" onclick="toggleAuthMode()">Создать аккаунт</button></div><p class="meta" id="loginMessage" role="status"></p></div>
 <div class="panel hidden" id="profileBox"><h3 id="profileEmail"></h3><p class="muted">Аккаунт AniWave · Free Member</p><h3>Избранное</h3><div id="favoritesList" class="muted">Загрузка...</div><button class="secondary" onclick="logout()">Выйти</button></div></section>
 <section id="admin" class="page hidden">
-<div class="section-head"><h2>Админ-панель AniWave</h2><span class="meta">Управление HLS-источниками</span></div>
+<div class="section-head"><h2>Админ-панель AniWave</h2><span class="meta">Управление каталогом и HLS-источниками</span></div>
 <div class="panel">
+  <h3>Добавить новое аниме</h3>
+  <p class="muted">Название должно быть уникальным. Постер — необязательная HTTPS-ссылка на изображение.</p>
+  <label for="newAnimeName">Название</label><input class="field" id="newAnimeName" maxlength="80" placeholder="Название аниме">
+  <label for="newAnimeGenre">Жанр</label><input class="field" id="newAnimeGenre" maxlength="40" placeholder="Экшен, романтика, приключения...">
+  <div class="row"><div style="flex:1;min-width:130px"><label for="newAnimeYear">Год</label><input class="field" id="newAnimeYear" type="number" min="1900" max="2100" value="2026"></div><div style="flex:1;min-width:130px"><label for="newAnimeRating">Рейтинг</label><input class="field" id="newAnimeRating" type="number" min="0" max="10" step="0.1" value="8.0"></div></div>
+  <label for="newAnimeEmoji">Эмодзи карточки</label><input class="field" id="newAnimeEmoji" maxlength="8" value="🎬">
+  <label for="newAnimePoster">Ссылка на постер (HTTPS)</label><input class="field" id="newAnimePoster" type="url" placeholder="https://example.com/poster.jpg">
+  <label for="newAnimeDesc">Описание</label><textarea class="field" id="newAnimeDesc" maxlength="600" rows="3" placeholder="Краткое описание..."></textarea>
+  <div class="row"><button id="createAnime" type="button">Добавить в каталог</button></div>
+  <p id="animeAdminMessage" class="muted" role="status"></p><div id="adminAnimeList" class="muted"></div>
+</div>
+<div class="panel"><h3>Управление HLS-источниками</h3>
   <p class="muted">Добавляй только HTTPS HLS-ссылки .m3u8 на видео, права на распространение которых у тебя есть. Тестовый поток не является серией аниме.</p>
   <label for="adminAnime">Аниме</label><select class="field" id="adminAnime"></select>
   <label for="adminEpisode">Номер серии</label><input class="field" id="adminEpisode" type="number" min="1" max="999" value="1">
@@ -118,11 +130,13 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 let currentFilter="Все",currentAnime=anime[0],episode=1,user=null,favorites=[],authMode="login";
-function card(a){return `<article class="anime-card" onclick="openAnime('${a.name.replace(/'/g,"\\'")}')"><div class="poster"><img src="${a.img}" alt="Постер: ${a.name}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='grid'"><div class="poster-fallback" style="display:none">${a.emoji}</div><span class="poster-quality">HD</span><span class="poster-score">★ ${a.rating}</span></div><div class="card-info"><strong>${a.name}</strong><span class="meta">${a.year} · ${a.genre}</span></div></article>`}
+function escapeHTML(value){return String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]))}
+function card(a){const idx=anime.indexOf(a);const poster=a.img?'<img src="'+escapeHTML(a.img)+'" alt="Постер: '+escapeHTML(a.name)+'" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'">':"";return '<article class="anime-card" onclick="openAnimeByIndex('+idx+')"><div class="poster">'+poster+'<div class="poster-fallback" style="display:'+(a.img?'none':'grid')+'">'+escapeHTML(a.emoji||"🎬")+'</div><span class="poster-quality">HD</span><span class="poster-score">★ '+escapeHTML(a.rating)+'</span></div><div class="card-info"><strong>'+escapeHTML(a.name)+'</strong><span class="meta">'+escapeHTML(a.year)+' · '+escapeHTML(a.genre)+'</span></div></article>'}
 function renderCatalog(){let q=(document.getElementById("search")?.value||"").toLowerCase();document.getElementById("catalogGrid").innerHTML=anime.filter(a=>(currentFilter==="Все"||a.genre===currentFilter)&&a.name.toLowerCase().includes(q)).map(card).join("")||'<p class="muted">Ничего не найдено.</p>'}
 function renderHome(){document.getElementById("homeGrid").innerHTML=anime.slice(0,4).map(card).join("")}
 function go(page){document.querySelectorAll(".page").forEach(x=>x.classList.add("hidden"));document.getElementById(page).classList.remove("hidden");document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("active",x.dataset.page===page));if(page==="catalog")renderCatalog();if(page==="profile")renderProfile();if(page==="admin")renderAdmin();window.scrollTo({top:0,behavior:"smooth"})}
-function openAnime(name){currentAnime=anime.find(a=>a.name===name)||anime[0];episode=1;document.getElementById("watchTitle").textContent=currentAnime.name;document.getElementById("watchDesc").textContent=currentAnime.desc;document.getElementById("detailGenre").textContent=currentAnime.genre;document.getElementById("detailYear").textContent=currentAnime.year;document.getElementById("detailRating").textContent="★ "+currentAnime.rating;document.getElementById("detailPoster").src=currentAnime.img;document.getElementById("detailPoster").alt="Постер: "+currentAnime.name;document.getElementById("detailBackdrop").style.backgroundImage="linear-gradient(90deg,rgba(9,9,20,.98),rgba(9,9,20,.82) 48%,rgba(9,9,20,.18)),url('"+currentAnime.img+"')";renderWatch();go("watch")}
+function openAnimeByIndex(index){const item=anime[index];if(item)openAnime(item.name)}
+function openAnime(name){currentAnime=anime.find(a=>a.name===name)||anime[0];episode=1;document.getElementById("watchTitle").textContent=currentAnime.name;document.getElementById("watchDesc").textContent=currentAnime.desc;document.getElementById("detailGenre").textContent=currentAnime.genre;document.getElementById("detailYear").textContent=currentAnime.year;document.getElementById("detailRating").textContent="★ "+currentAnime.rating;if(currentAnime.img){document.getElementById("detailPoster").src=currentAnime.img;document.getElementById("detailPoster").style.visibility="visible";document.getElementById("detailBackdrop").style.backgroundImage="linear-gradient(90deg,rgba(9,9,20,.98),rgba(9,9,20,.82) 48%,rgba(9,9,20,.18)),url('"+currentAnime.img+"')"}else{document.getElementById("detailPoster").style.visibility="hidden";document.getElementById("detailBackdrop").style.backgroundImage="linear-gradient(90deg,rgba(9,9,20,.98),rgba(9,9,20,.82) 48%,rgba(9,9,20,.18))"}renderWatch();go("watch")}
 function renderWatch(){document.getElementById("episodeLabel").textContent=`Сезон 1 · Серия ${episode}`;document.getElementById("episodes").innerHTML=Array.from({length:12},(_,i)=>`<button class="${episode===i+1?"selected":""}" onclick="episode=${i+1};renderWatch();awLoadEpisode()">${i+1}</button>`).join("");document.getElementById("favButton").textContent=favorites.includes(currentAnime.name)?"♥ В избранном":"♡ В избранное";if(document.getElementById("awVideo"))awLoadEpisode()}
 function changeEpisode(n){episode=Math.max(1,Math.min(12,episode+n));renderWatch()}
 async function toggleFavorite(){
@@ -174,6 +188,7 @@ function initAuth(){
   }else{favorites=[];renderFavorites()}
   document.getElementById("adminNav").classList.toggle("hidden",!isAdmin);
   renderProfile();renderWatch();
+  await loadAnimeCatalog();
   await loadStreams();
  });
 }
@@ -190,6 +205,51 @@ const HLS_SOURCES = {
  "Ван-Пис": {}
 };
 let isAdmin=false;
+async function loadAnimeCatalog(){
+ try{
+  const snapshot=await db.collection("animeCatalog").get();
+  snapshot.forEach(doc=>{
+   const data=doc.data();
+   if(data.name&&!anime.some(item=>item.name===data.name)){
+    anime.push({name:data.name,genre:data.genre||"Другое",year:String(data.year||""),rating:String(data.rating||"0.0"),emoji:data.emoji||"🎬",img:data.img||"",desc:data.desc||"",custom:true});
+   }
+  });
+  renderHome();renderCatalog();
+  if(isAdmin)renderAdminAnimeList();
+ }catch(error){console.warn("Не удалось загрузить дополнительный каталог",error)}
+}
+async function addAnimeFromAdmin(){
+ const message=document.getElementById("animeAdminMessage");
+ if(!user||!isAdmin){message.textContent="Нет прав администратора.";return}
+ const name=document.getElementById("newAnimeName").value.trim();
+ const genre=document.getElementById("newAnimeGenre").value.trim();
+ const year=Number(document.getElementById("newAnimeYear").value);
+ const rating=Number(document.getElementById("newAnimeRating").value);
+ const emoji=document.getElementById("newAnimeEmoji").value.trim()||"🎬";
+ const img=document.getElementById("newAnimePoster").value.trim();
+ const desc=document.getElementById("newAnimeDesc").value.trim();
+ if(name.length<2||!genre||!desc){message.textContent="Заполни название, жанр и описание.";return}
+ if(anime.some(item=>item.name.toLowerCase()===name.toLowerCase())){message.textContent="Такое название уже есть в каталоге.";return}
+ if(!Number.isInteger(year)||year<1900||year>2100){message.textContent="Проверь год выпуска.";return}
+ if(!Number.isFinite(rating)||rating<0||rating>10){message.textContent="Рейтинг должен быть от 0 до 10.";return}
+ if(img&&!/^https:\/\//i.test(img)){message.textContent="Постер должен иметь HTTPS-ссылку.";return}
+ try{
+  const record={name,genre,year:String(year),rating:rating.toFixed(1),emoji,img,desc,createdAt:firebase.firestore.FieldValue.serverTimestamp()};
+  await db.collection("animeCatalog").doc(encodeURIComponent(name)).set(record);
+  anime.push({name,genre,year:String(year),rating:rating.toFixed(1),emoji,img,desc,custom:true});
+  document.getElementById("newAnimeName").value="";
+  document.getElementById("newAnimeGenre").value="";
+  document.getElementById("newAnimePoster").value="";
+  document.getElementById("newAnimeDesc").value="";
+  message.textContent="Аниме добавлено в каталог!";
+  renderHome();renderCatalog();renderAdminAnimeList();renderAdmin();
+ }catch(error){message.textContent="Не удалось добавить: "+error.message}
+}
+function renderAdminAnimeList(){
+ const el=document.getElementById("adminAnimeList");if(!el)return;
+ const custom=anime.filter(item=>item.custom===true);
+ el.innerHTML=custom.length?'<h4>Добавленные аниме</h4>'+custom.map(item=>'<p>'+escapeHTML(item.name)+' · '+escapeHTML(item.year)+' · '+escapeHTML(item.genre)+'</p>').join(""):"";
+}
 async function loadStreams(){
  try{
   const snapshot=await db.collection("streams").get();
@@ -210,6 +270,7 @@ async function loadStreams(){
 }
 function renderAdmin(){
  if(!isAdmin){go("profile");document.getElementById("loginMessage").textContent="Для этой страницы нужны права администратора.";return}
+ renderAdminAnimeList();
  const select=document.getElementById("adminAnime");
  if(!select.options.length)select.innerHTML=anime.map(a=>'<option value="'+a.name.replace(/&/g,"&amp;").replace(/"/g,"&quot;")+'">'+a.name+'</option>').join("");
  const list=document.getElementById("adminStreams");
@@ -292,6 +353,7 @@ function selectPlan(name){document.getElementById("planMessage").textContent=`В
 document.querySelectorAll("#filters button").forEach(b=>b.addEventListener("click",()=>{currentFilter=b.dataset.filter;document.querySelectorAll("#filters button").forEach(x=>x.classList.toggle("active",x===b));renderCatalog()}));
 document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>go(b.dataset.page)));
 
+document.getElementById("createAnime").addEventListener("click",addAnimeFromAdmin);
 renderHome();renderCatalog();renderWatch();initAuth();
 </script>
 </body></html>
