@@ -1168,7 +1168,7 @@ async function saveStream(){
  try{
   const id=encodeURIComponent(animeTitle)+"_s"+season+"_e"+ep;
   const data={animeTitle,season,episode:ep,title,url,updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
-  const streamRef=db.collection("streams").doc(id),existing=await streamRef.get();
+  const streamRef=db.collection("streams").doc(id);
   await streamRef.set(data,{merge:true});
   if(!EPISODE_CATALOG[animeTitle])EPISODE_CATALOG[animeTitle]={};
   if(!EPISODE_CATALOG[animeTitle][season])EPISODE_CATALOG[animeTitle][season]={};
