@@ -1166,12 +1166,14 @@ async function bindBunnyVideo(videoId){
    }
    transaction.set(targetRef,{animeTitle,season,episode,title:video.title||"",url,bunnyVideoId:videoId,bunnyStatus:"uploaded",deleted:false,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
   });
-  existingLinks.docs.forEach(doc=>{
+  const clearCachedLinks=links=>links?.docs.forEach(doc=>{
    if(doc.id===targetId)return;
    const old=doc.data(),oldAnime=old.animeTitle,oldSeason=Number(old.season)||1,oldEpisode=Number(old.episode)||1;
    if(EPISODE_CATALOG[oldAnime]?.[oldSeason])delete EPISODE_CATALOG[oldAnime][oldSeason][oldEpisode];
    if(oldSeason===1&&HLS_SOURCES[oldAnime])delete HLS_SOURCES[oldAnime][oldEpisode];
   });
+  clearCachedLinks(existingLinks);
+  clearCachedLinks(previousLinks);
   if(!EPISODE_CATALOG[animeTitle])EPISODE_CATALOG[animeTitle]={};
   if(!EPISODE_CATALOG[animeTitle][season])EPISODE_CATALOG[animeTitle][season]={};
   EPISODE_CATALOG[animeTitle][season][episode]={url,title:video.title||""};
