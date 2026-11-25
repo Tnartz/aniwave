@@ -1,12 +1,8 @@
 {
   "name": "aniwave-bunny-worker",
   "private": true,
-  "type": "module",
   "scripts": {
     "deploy": "wrangler deploy"
-  },
-  "dependencies": {
-    "jose": "^5.9.6"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"
