@@ -645,7 +645,7 @@ async function openPublicProfile(uid){
    document.getElementById("publicProfileReviewsCount").textContent=String(items.length);
    reviewsList.innerHTML=items.map(item=>{const index=anime.findIndex(entry=>entry.name===item.animeTitle);return '<article class="review-item"><div class="review-item-head"><strong>'+escapeHTML(item.animeTitle)+'</strong><strong>★ '+Math.max(1,Math.min(10,Number(item.rating)||0))+'/10</strong></div><p>'+escapeHTML(item.text||"")+'</p><div class="review-meta">'+(item.updatedAt?new Date(item.updatedAt).toLocaleDateString("ru-RU"):"")+'</div>'+(index>=0?'<button type="button" class="secondary" onclick="openAnimeByIndex('+index+')">Открыть аниме</button>':'')+'</article>'}).join("")||'<p class="muted">Пока нет опубликованных отзывов.</p>';
   }
- }catch(error){favoritesSection.classList.add("hidden");reviewsSection.classList.add("hidden");name.textContent="Не удалось загрузить профиль";status.textContent=error.message;console.error("Public profile:",error)}
+ }catch(error){statsSection.classList.add("hidden");watchedStat.classList.add("hidden");favoritesStat.classList.add("hidden");reviewsStat.classList.add("hidden");favoritesSection.classList.add("hidden");reviewsSection.classList.add("hidden");name.textContent="Не удалось загрузить профиль";status.textContent=error.message;console.error("Public profile:",error)}
 }
 
 let activeDMUser=null;let activeDMName="";let activeDMAvatar="🌙";
