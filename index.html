@@ -614,7 +614,7 @@ async function loadStreams(){
     if(season===1&&HLS_SOURCES[data.animeTitle])delete HLS_SOURCES[data.animeTitle][data.episode];
     return;
    }
-   if(!data.url)return;
+   if(!data.url&&!(Array.isArray(data.sources)&&data.sources.some(source=>source&&typeof source.url==="string")))return;
    if(!EPISODE_CATALOG[data.animeTitle])EPISODE_CATALOG[data.animeTitle]={};
    if(!EPISODE_CATALOG[data.animeTitle][season])EPISODE_CATALOG[data.animeTitle][season]={};
    EPISODE_CATALOG[data.animeTitle][season][data.episode]={url:data.url||"",sources:Array.isArray(data.sources)?data.sources.filter(source=>source&&typeof source.url==="string"):[],title:data.title||"",lastCheckStatus:data.lastCheckStatus||"",lastCheckMessage:data.lastCheckMessage||"",lastCheckAt:data.lastCheckAt||null};
