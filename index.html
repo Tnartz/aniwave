@@ -1755,6 +1755,7 @@ function awLoadEpisode(sourceIndex){
  const externalFrame=document.getElementById("awExternalFrame"),controls=document.getElementById("awControls");
  if(externalFrame){externalFrame.src="about:blank";externalFrame.hidden=true}
  v.style.display="";if(controls)controls.style.display="";
+ document.getElementById("awOverlay").style.display="";
  if(!source){awSetMessage("AniWave Player","Для этой серии пока не добавлены видеoисточники.");document.getElementById("awStatus").textContent="Нет источников";return}
  if(!/^https:\/\//i.test(source)){tryNextSource("invalid_url");return}
  if(selectedSource?.type==="youtube"){
