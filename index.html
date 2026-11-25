@@ -1055,7 +1055,7 @@ function bunnyStatusLabel(status){
 function formatVideoSize(bytes){
  const n=Number(bytes)||0;if(n<1024*1024)return (n/1024).toFixed(0)+" КБ";if(n<1024*1024*1024)return (n/1024/1024).toFixed(1)+" МБ";return (n/1024/1024/1024).toFixed(2)+" ГБ";
 }
-let bunnyCurrentPage=1,bunnyTotalPages=1,bunnyLoadedItems=[];
+let bunnyCurrentPage=1,bunnyTotalPages=1,bunnyLoadedItems=[],bunnyEpisodeLinks={};
 async function loadBunnyVideos(page=bunnyCurrentPage){
  const button=document.getElementById("refreshBunnyVideos"),list=document.getElementById("bunnyLibraryVideos"),summary=document.getElementById("bunnyLibrarySummary"),message=document.getElementById("bunnyLibraryMessage");
  const searchInput=document.getElementById("bunnyVideoSearch"),prev=document.getElementById("bunnyVideosPrev"),next=document.getElementById("bunnyVideosNext"),pageLabel=document.getElementById("bunnyVideosPage");
@@ -1073,7 +1073,20 @@ async function loadBunnyVideos(page=bunnyCurrentPage){
   bunnyCurrentPage=Math.max(1,Number(data.currentPage)||page);
   bunnyTotalPages=Math.max(1,Math.ceil(totalItems/perPage));
   bunnyLoadedItems=items;
-  summary.textContent="Видео в библиотеке: "+totalItems+" · На странице: "+items.length;
+  bunnyEpisodeLinks={};
+  const videoIds=items.map(video=>video.guid).filter(Boolean);
+  for(let i=0;i<videoIds.length;i+=30){
+   const chunk=videoIds.slice(i,i+30);
+   const linked=await db.collection("streams").where("bunnyVideoId","in",chunk).get();
+   linked.forEach(doc=>{
+    const episode=doc.data();
+    if(episode.deleted===true)return;
+    const id=episode.bunnyVideoId;
+    if(!id)return;
+    bunnyEpisodeLinks[id]={animeTitle:episode.animeTitle||"Аниме",season:Number(episode.season)||1,episode:Number(episode.episode)||1,title:episode.title||""};
+   });
+  }
+  summary.textContent="Видео в библиотеке: "+totalItems+" · На странице: "+items.length+" · Привязано к сериям: "+Object.keys(bunnyEpisodeLinks).length;
   if(pageLabel)pageLabel.textContent="Страница "+bunnyCurrentPage+" из "+bunnyTotalPages;
   if(prev)prev.disabled=bunnyCurrentPage<=1;
   if(next)next.disabled=bunnyCurrentPage>=bunnyTotalPages;
@@ -1096,7 +1109,9 @@ function renderBunnyVideoItems(){
   const duration=Number(video.length)>0?Math.floor(video.length/60)+":"+String(Math.floor(video.length%60)).padStart(2,"0"):"—";
   const size=formatVideoSize(video.storageSize);
   const thumb=video.thumbnailFileName?"https://vz-1db794dd-dbb.b-cdn.net/"+encodeURIComponent(video.guid)+"/"+encodeURIComponent(video.thumbnailFileName):"";
-  return '<article class="admin-bunny-item"><div class="admin-bunny-thumb">'+(thumb?'<img src="'+thumb+'" alt="" loading="lazy">':'<span>▶</span>')+'</div><div class="admin-bunny-info"><strong>'+escapeHTML(video.title||"Без названия")+'</strong><span class="admin-bunny-status '+(ready?"is-ready":status===5?"is-error":"")+'">'+escapeHTML(bunnyStatusLabel(status))+'</span><span class="review-meta">'+duration+' · '+size+'</span><code>'+escapeHTML(video.guid||"")+'</code></div><button class="secondary admin-bunny-copy" type="button" data-bunny-copy="'+escapeHTML(video.guid||"")+'">Копировать ID</button></article>';
+  const link=bunnyEpisodeLinks[video.guid];
+  const relation=link?"Привязано: "+link.animeTitle+" · S"+link.season+"E"+link.episode:"Не привязано к серии";
+  return '<article class="admin-bunny-item"><div class="admin-bunny-thumb">'+(thumb?'<img src="'+thumb+'" alt="" loading="lazy">':'<span>▶</span>')+'</div><div class="admin-bunny-info"><strong>'+escapeHTML(video.title||"Без названия")+'</strong><span class="admin-bunny-status '+(ready?"is-ready":status===5?"is-error":"")+'">'+escapeHTML(bunnyStatusLabel(status))+'</span><span class="review-meta">'+duration+' · '+size+'</span><span class="review-meta">'+escapeHTML(relation)+'</span><code>'+escapeHTML(video.guid||"")+'</code></div><button class="secondary admin-bunny-copy" type="button" data-bunny-copy="'+escapeHTML(video.guid||"")+'">Копировать ID</button></article>';
  }).join("")||'<p class="muted">Нет видео для выбранного фильтра на этой странице.</p>';
  list.querySelectorAll("[data-bunny-copy]").forEach(btn=>btn.addEventListener("click",async()=>{
   try{await navigator.clipboard.writeText(btn.dataset.bunnyCopy);document.getElementById("bunnyLibraryMessage").textContent="ID видео скопирован."}
