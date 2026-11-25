@@ -482,6 +482,23 @@ async function deleteEpisodeComment(id){
 function renderAnimeReviews(){const summary=document.getElementById("reviewSummary"),list=document.getElementById("reviewList"),form=document.getElementById("reviewForm");if(!summary||!list||!form)return;const items=animeReviewsCache.filter(x=>x.animeTitle===currentAnime.name).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));const avg=items.length?(items.reduce((sum,x)=>sum+Number(x.rating||0),0)/items.length).toFixed(1):"—";summary.textContent=items.length?"★ "+avg+" из 10 · "+items.length+" "+(items.length===1?"отзыв":items.length<5?"отзыва":"отзывов"):"Пока нет отзывов. Будь первым!";const mine=items.find(x=>user&&x.userId===user.uid);document.getElementById("reviewRating").value=String(mine?.rating||8);document.getElementById("reviewText").value=mine?.text||"";document.getElementById("reviewFormMessage").textContent=user?(mine?"Ты уже оставил отзыв — можешь обновить его":"Один отзыв на каждое аниме"):"Войди в аккаунт, чтобы оставить отзыв";form.querySelector("button").textContent=mine?"Обновить отзыв":"Опубликовать отзыв";list.innerHTML=items.map(x=>'<article class="review-item"><div class="review-item-head"><strong>'+escapeHTML(x.displayName||"Зритель AniWave")+'</strong><strong>★ '+Number(x.rating)+'/10</strong></div><p>'+escapeHTML(x.text||"")+"</p><div class=\"review-meta\">"+(x.updatedAt?new Date(x.updatedAt).toLocaleDateString("ru-RU"):"")+"</div></article>").join("")}
 async function loadAnimeReviews(){const summary=document.getElementById("reviewSummary");if(!summary)return;try{const snap=await db.collection("animeReviews").get();animeReviewsCache=snap.docs.map(d=>({id:d.id,...d.data()}));renderAnimeReviews();renderProfileStats()}catch(error){summary.textContent="Не удалось загрузить отзывы. Проверь правила Firestore.";console.error("Reviews load:",error)}}
 async function saveAnimeReview(){const message=document.getElementById("reviewFormMessage");if(!user){message.textContent="Сначала войди в аккаунт AniWave.";go("profile");return}const text=document.getElementById("reviewText").value.trim(),rating=Number(document.getElementById("reviewRating").value);if(!text){message.textContent="Напиши пару слов о просмотренном аниме.";return}if(text.length>1200||!Number.isInteger(rating)||rating<1||rating>10)return;const id=encodeURIComponent(currentAnime.name)+"_"+user.uid;const existing=animeReviewsCache.find(x=>x.id===id);const data={userId:user.uid,animeTitle:currentAnime.name,displayName:currentUserProfile.nickname||(user.email||"Зритель AniWave").split("@")[0],rating,text,updatedAt:Date.now(),updatedAtServer:firebase.firestore.FieldValue.serverTimestamp()};try{await db.collection("animeReviews").doc(id).set(data,{merge:true});const index=animeReviewsCache.findIndex(x=>x.id===id);if(index>=0)animeReviewsCache[index]={id,...data};else animeReviewsCache.push({id,...data});renderAnimeReviews();message.textContent="Отзыв сохранён! Спасибо."; }catch(error){message.textContent="Не удалось сохранить отзыв: "+error.message}}
+function episodeVariantPreferenceKey(animeTitle){return "aniwave-variant-"+encodeURIComponent(animeTitle)}
+function saveEpisodeVariantPreference(source){
+ if(!currentAnime||!source)return;
+ try{localStorage.setItem(episodeVariantPreferenceKey(currentAnime.name),JSON.stringify({studio:String(source.studio||""),name:String(source.name||""),language:String(source.language||""),savedAt:Date.now()}))}catch(error){console.warn("Не удалось сохранить выбранную озвучку на устройстве.",error)}
+}
+function getPreferredEpisodeSourceIndex(sources){
+ if(!Array.isArray(sources)||!sources.length||!currentAnime)return 0;
+ try{
+  const saved=JSON.parse(localStorage.getItem(episodeVariantPreferenceKey(currentAnime.name))||"null");
+  if(!saved)return 0;
+  const norm=value=>String(value||"").trim().toLocaleLowerCase("ru");
+  let index=sources.findIndex(source=>norm(source.studio)===norm(saved.studio)&&norm(source.name)===norm(saved.name)&&norm(source.language)===norm(saved.language));
+  if(index<0&&saved.studio)index=sources.findIndex(source=>norm(source.studio)===norm(saved.studio)&&(!saved.language||norm(source.language)===norm(saved.language)));
+  if(index<0&&saved.name)index=sources.findIndex(source=>norm(source.name)===norm(saved.name)&&(!saved.language||norm(source.language)===norm(saved.language)));
+  return index>=0?index:0;
+ }catch(_error){return 0}
+}
 function renderVoiceSourceCards(){
  const container=document.getElementById("voiceSourceCards"),count=document.getElementById("voiceSourceCount");
  if(!container)return;
@@ -498,7 +515,7 @@ function renderVoiceSourceCards(){
 function selectEpisodeSource(index){
  const select=document.getElementById("awSource");
  if(!select||index<0||index>=select.options.length)return;
- select.value=String(index);renderEpisodeInfo();renderVoiceSourceCards();awLoadEpisode(index);
+ select.value=String(index);saveEpisodeVariantPreference(getEpisodeSources(getEpisodeData(currentAnime.name,selectedSeason,episode))[index]);renderEpisodeInfo();renderVoiceSourceCards();awLoadEpisode(index);
 }
 function renderEpisodeInfo(){
  const data=getEpisodeData(currentAnime.name,selectedSeason,episode)||{};
@@ -536,7 +553,7 @@ function renderWatch(){
  document.getElementById("detailSeasonCount").textContent=String(seasonTotal);document.getElementById("detailEpisodeCount").textContent=String(allEpisodeTotal||"—");
  refreshContinueCard();
  document.getElementById("episodeLabel").textContent="Сезон "+selectedSeason+" · Серия "+episode+(currentData?.title?" — "+currentData.title:"");
- const sourceSelect=document.getElementById("awSource");if(sourceSelect){const sources=getEpisodeSources(currentData);sourceSelect.innerHTML=sources.map((source,index)=>'<option value="'+index+'">'+escapeHTML(source.studio||source.name||("Источник "+(index+1)))+(source.name&&source.studio?" · "+escapeHTML(source.name):"")+(source.language?" · "+escapeHTML(source.language):"")+(source.quality?" · "+escapeHTML(source.quality):"")+"</option>").join("")||'<option value="0">Нет источников</option>';sourceSelect.disabled=sources.length<2;}renderEpisodeInfo();renderVoiceSourceCards();
+ const sourceSelect=document.getElementById("awSource");let preferredSourceIndex=0;if(sourceSelect){const sources=getEpisodeSources(currentData);preferredSourceIndex=getPreferredEpisodeSourceIndex(sources);sourceSelect.innerHTML=sources.map((source,index)=>'<option value="'+index+'">'+escapeHTML(source.studio||source.name||("Источник "+(index+1)))+(source.name&&source.studio?" · "+escapeHTML(source.name):"")+(source.language?" · "+escapeHTML(source.language):"")+(source.quality?" · "+escapeHTML(source.quality):"")+"</option>").join("")||'<option value="0">Нет источников</option>';sourceSelect.value=String(preferredSourceIndex);sourceSelect.disabled=sources.length<2;}renderEpisodeInfo();renderVoiceSourceCards();
  document.getElementById("episodes").innerHTML=episodeNumbers.map(n=>{
   const data=getEpisodeData(currentAnime.name,selectedSeason,n);
   const label=data?.title?escapeHTML(data.title):"Серия "+n;
@@ -553,7 +570,7 @@ function renderWatch(){
  if(position)position.textContent=(navigationIndex>=0?("Эпизод "+(navigationIndex+1)+" из "+navigation.length):("Серия "+episode));
  renderEpisodeComments();
  document.getElementById("favButton").textContent=favorites.includes(currentAnime.name)?"♥ В избранном":"♡ В избранное";
- if(document.getElementById("awVideo"))awLoadEpisode();
+ if(document.getElementById("awVideo"))awLoadEpisode(preferredSourceIndex);
  renderAnimeReviews();
  if(!window.awReviewsLoaded){window.awReviewsLoaded=true;loadAnimeReviews()}
 }
@@ -1779,7 +1796,7 @@ awVideo().addEventListener("enterpictureinpicture",awUpdatePipButton);
 awVideo().addEventListener("leavepictureinpicture",awUpdatePipButton);
 awUpdatePipButton();
 document.getElementById("awQuality").addEventListener("change",e=>{if(awHls)awHls.currentLevel=Number(e.target.value)});
-document.getElementById("awSource").addEventListener("change",e=>{renderEpisodeInfo();renderVoiceSourceCards();awLoadEpisode(Number(e.target.value))});
+document.getElementById("awSource").addEventListener("change",e=>{const sources=getEpisodeSources(getEpisodeData(currentAnime.name,selectedSeason,episode));saveEpisodeVariantPreference(sources[Number(e.target.value)]);renderEpisodeInfo();renderVoiceSourceCards();awLoadEpisode(Number(e.target.value))});
 
 const awMuteButton=document.getElementById("awMute"),awVolumeSlider=document.getElementById("awVolume");
 function awUpdateVolumeUI(){const v=awVideo(),muted=v.muted||v.volume===0;if(awMuteButton){awMuteButton.textContent=muted?"🔇":"🔊";awMuteButton.title=muted?"Включить звук":"Выключить звук";awMuteButton.setAttribute("aria-label",awMuteButton.title)}if(awVolumeSlider)awVolumeSlider.value=String(muted?0:v.volume)}
