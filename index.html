@@ -128,7 +128,7 @@ footer{text-align:center;color:#777184;padding:30px 10px;font-size:12px}
   <div class="aw-status" id="awStatus">Ожидает HLS-источник (.m3u8)</div>
   <div class="row" style="justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px"><a class="button secondary" id="officialWatchLink" href="https://www.crunchyroll.com/series/GDKHZEJ0K/solo-leveling" target="_blank" rel="noopener noreferrer">↗ Официальный просмотр</a><button type="button" class="secondary" id="awDemoTest">▶ Проверить плеер (демо)</button></div>
 </div>
-  <div class="row" style="justify-content:space-between;margin-top:14px"><button class="secondary" onclick="changeEpisode(-1)">← Предыдущая</button><button onclick="changeEpisode(1)">Следующая →</button></div>
+  <div class="row" style="justify-content:space-between;align-items:center;margin-top:14px;gap:12px"><button class="secondary" id="previousEpisodeButton" onclick="changeEpisode(-1)">← Предыдущая</button><span class="meta" id="episodePosition">Серия 1</span><button id="nextEpisodeButton" onclick="changeEpisode(1)">Следующая →</button></div>
   <div class="episodes" id="episodes"></div>
   <section class="comments-panel"><div class="detail-section-head"><div><div class="eyebrow">ANIWAVE COMMUNITY</div><h2>💬 Обсуждение серии</h2></div><span class="meta" id="commentCount">0 комментариев</span></div><p class="muted" id="commentContext">Обсуждаем выбранную серию</p><form class="comment-form" id="commentForm" onsubmit="event.preventDefault();saveEpisodeComment()"><textarea id="commentText" maxlength="1000" placeholder="Поделись впечатлениями о серии (до 1000 символов)"></textarea><div class="row"><button type="submit">Отправить комментарий</button><span class="review-meta" id="commentFormMessage">Войди в аккаунт, чтобы писать комментарии</span></div></form><div class="comment-list" id="commentList"><p class="muted">Загружаем обсуждение…</p></div></section>
 </div>
@@ -408,20 +408,35 @@ function renderWatch(){
  document.getElementById("episodeLabel").textContent="Сезон "+selectedSeason+" · Серия "+episode+(currentData?.title?" — "+currentData.title:"");
  const sourceSelect=document.getElementById("awSource");if(sourceSelect){const sources=getEpisodeSources(currentData);sourceSelect.innerHTML=sources.map((source,index)=>'<option value="'+index+'">'+escapeHTML(source.name||("Источник "+(index+1)))+(source.language?" · "+escapeHTML(source.language):"")+(source.quality?" · "+escapeHTML(source.quality):"")+"</option>").join("")||'<option value="0">Нет источников</option>';sourceSelect.disabled=sources.length<2;}
  document.getElementById("episodes").innerHTML=episodeNumbers.map(n=>{const data=getEpisodeData(currentAnime.name,selectedSeason,n);const label=data?.title?escapeHTML(data.title):"Серия "+n;return '<button class="'+(episode===n?'selected':'')+'" title="'+escapeHTML("Серия "+n+" — "+label)+'" onclick="episode='+n+';renderWatch();awLoadEpisode()"><span class="episode-number">'+n+'</span><span class="episode-title">'+label+'</span></button>'}).join("");
+ const navigation=getEpisodeNavigationList(),navigationIndex=navigation.findIndex(item=>item.season===selectedSeason&&item.episode===episode);
+ const previousButton=document.getElementById("previousEpisodeButton"),nextButton=document.getElementById("nextEpisodeButton"),position=document.getElementById("episodePosition");
+ if(previousButton)previousButton.disabled=navigationIndex<=0;
+ if(nextButton)nextButton.disabled=navigationIndex<0||navigationIndex>=navigation.length-1;
+ if(position)position.textContent=(navigationIndex>=0?("Эпизод "+(navigationIndex+1)+" из "+navigation.length):("Серия "+episode));
  renderEpisodeComments();
  document.getElementById("favButton").textContent=favorites.includes(currentAnime.name)?"♥ В избранном":"♡ В избранное";
  if(document.getElementById("awVideo"))awLoadEpisode();
  renderAnimeReviews();
  if(!window.awReviewsLoaded){window.awReviewsLoaded=true;loadAnimeReviews()}
 }
+function getEpisodeNavigationList(){
+ const seasons=getAvailableSeasons(currentAnime.name);
+ const list=[];
+ seasons.forEach(season=>{
+  const entries=EPISODE_CATALOG[currentAnime.name]?.[season]||{};
+  let numbers=Object.keys(entries).map(Number).filter(Number.isFinite).sort((a,b)=>a-b);
+  if(!numbers.length&&season===1)numbers=Object.keys(HLS_SOURCES[currentAnime.name]||{}).map(Number).filter(Number.isFinite).sort((a,b)=>a-b);
+  if(!numbers.length&&seasons.length===1)numbers=Array.from({length:12},(_,i)=>i+1);
+  numbers.forEach(number=>list.push({season,episode:number}));
+ });
+ return list;
+}
 function changeEpisode(n){
- const entries=EPISODE_CATALOG[currentAnime.name]?.[selectedSeason]||{};
- const numbers=Object.keys(entries).map(Number).sort((a,b)=>a-b);
- const list=numbers.length?numbers:(selectedSeason===1?Object.keys(HLS_SOURCES[currentAnime.name]||{}).map(Number).sort((a,b)=>a-b):[]);
- const fallback=list.length?list:Array.from({length:12},(_,i)=>i+1);
- const index=fallback.indexOf(episode);
- const next=fallback[Math.max(0,Math.min(fallback.length-1,index+n))];
- if(next!==undefined){episode=next;renderWatch();awLoadEpisode()}
+ const list=getEpisodeNavigationList();
+ const index=list.findIndex(item=>item.season===selectedSeason&&item.episode===episode);
+ const next=list[index+n];
+ if(!next)return;
+ selectedSeason=next.season;episode=next.episode;renderWatch();awLoadEpisode();
 }
 async function toggleFavorite(){
  if(!user){go("profile");document.getElementById("loginMessage").textContent="Войди, чтобы сохранять избранное.";return}
