@@ -21,7 +21,7 @@ footer{text-align:center;color:#777184;padding:30px 10px;font-size:12px}
 </head>
 <body>
 <header><div class="logo">Ani<span>Wave</span></div><nav id="nav">
-<button data-page="home" class="active">Главная</button><button data-page="catalog">Каталог</button><button data-page="watch">Смотреть</button><button data-page="profile">Профиль</button><button data-page="premium">Premium</button>
+<button data-page="home" class="active">Главная</button><button data-page="catalog">Каталог</button><button data-page="watch">Смотреть</button><button data-page="freeAnime">Бесплатно</button><button data-page="profile">Профиль</button><button data-page="premium">Premium</button>
 </nav></header>
 <main>
 <section id="home" class="page">
@@ -49,6 +49,22 @@ footer{text-align:center;color:#777184;padding:30px 10px;font-size:12px}
   <div class="player"><div class="play-icon">▶</div><strong>Видео пока не подключено</strong><span class="muted">Здесь появится воспроизведение из лицензированного источника.</span><span class="meta">Демонстрационная страница просмотра</span></div>
   <div class="row" style="justify-content:space-between;margin-top:14px"><button class="secondary" onclick="changeEpisode(-1)">← Предыдущая</button><button onclick="changeEpisode(1)">Следующая →</button></div>
   <div class="episodes" id="episodes"></div>
+</div>
+</section>
+<section id="freeAnime" class="page hidden">
+<div class="section-head"><h2>Бесплатное аниме</h2></div>
+<p class="muted">Официальные плейлисты Anime! on TMS — серии встроены с YouTube. Доступность отдельных видео зависит от региона и настроек правообладателя.</p>
+<div class="filters" id="officialAnimeChoices">
+<button class="active" data-playlist="PLj2Ugc-vxcWGDWFMIlD5i-gz3u2s4tMa-">GOD MARS</button>
+<button data-playlist="PLj2Ugc-vxcWHnPJDXLZMmBqVm37XnI06x">We Rent Tsukumogami</button>
+<button data-playlist="PLj2Ugc-vxcWG_zTnv_Bzlo_T9tG2xDmzD">The Gutsy Frog</button>
+</div>
+<div class="panel">
+<div class="row" style="justify-content:space-between;margin-bottom:12px"><strong id="officialAnimeTitle">GOD MARS — официальные серии</strong><a class="meta" id="officialAnimeLink" href="https://www.youtube.com/playlist?list=PLj2Ugc-vxcWGDWFMIlD5i-gz3u2s4tMa-" target="_blank" rel="noopener">Открыть на YouTube ↗</a></div>
+<div style="position:relative;width:100%;aspect-ratio:16/9;background:#090914;border-radius:14px;overflow:hidden">
+<iframe id="officialAnimePlayer" src="https://www.youtube-nocookie.com/embed/videoseries?list=PLj2Ugc-vxcWGDWFMIlD5i-gz3u2s4tMa-" title="Официальный плейлист аниме на YouTube" style="position:absolute;inset:0;width:100%;height:100%;border:0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+</div>
+<p class="meta">Источник: Anime! on TMS Official Channel. Если встроенное воспроизведение недоступно, открой плейлист на YouTube.</p>
 </div>
 </section>
 <section id="profile" class="page hidden">
@@ -141,6 +157,14 @@ function initAuth(){
 function selectPlan(name){document.getElementById("planMessage").textContent=`Выбран план ${name}. Для оплаты нужно подключить платёжный сервис и серверную проверку подписки.`}
 document.querySelectorAll("#filters button").forEach(b=>b.addEventListener("click",()=>{currentFilter=b.dataset.filter;document.querySelectorAll("#filters button").forEach(x=>x.classList.toggle("active",x===b));renderCatalog()}));
 document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>go(b.dataset.page)));
+document.querySelectorAll("#officialAnimeChoices button").forEach(b=>b.addEventListener("click",()=>{
+ const list=b.dataset.playlist;
+ const names={"PLj2Ugc-vxcWGDWFMIlD5i-gz3u2s4tMa-":"GOD MARS","PLj2Ugc-vxcWHnPJDXLZMmBqVm37XnI06x":"We Rent Tsukumogami","PLj2Ugc-vxcWG_zTnv_Bzlo_T9tG2xDmzD":"The Gutsy Frog"};
+ document.querySelectorAll("#officialAnimeChoices button").forEach(x=>x.classList.toggle("active",x===b));
+ document.getElementById("officialAnimeTitle").textContent=names[list]+" — официальные серии";
+ document.getElementById("officialAnimePlayer").src="https://www.youtube-nocookie.com/embed/videoseries?list="+list;
+ document.getElementById("officialAnimeLink").href="https://www.youtube.com/playlist?list="+list;
+}));
 renderHome();renderCatalog();renderWatch();initAuth();
 </script>
 </body></html>
