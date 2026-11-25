@@ -44,7 +44,7 @@ footer{text-align:center;color:#777184;padding:30px 10px;font-size:12px}
   </div>
   <div class="detail-poster"><img id="detailPoster" src="" alt="Постер аниме"></div>
 </div>
-<div class="detail-section-head"><div><div class="eyebrow">СМОТРИ В СВОЁМ ТЕМПЕ</div><h2>Список серий</h2></div><span class="meta">Сезон 1 · 12 серий в демо-каталоге</span></div>
+<div class="detail-section-head"><div><div class="eyebrow">СМОТРИ В СВОЁМ ТЕМПЕ</div><h2>Список серий</h2></div><span class="meta">Выбери сезон и серию ниже</span></div>
 <div class="panel" id="playerSection">
   <div class="row" style="justify-content:space-between;align-items:end;flex-wrap:wrap"><div style="min-width:150px"><label for="watchSeason">Сезон</label><select class="field" id="watchSeason" onchange="selectWatchSeason(this.value)"><option value="1">Сезон 1</option></select></div><strong id="episodeLabel">Сезон 1 · Серия 1</strong><span class="meta">AniWave Player</span></div>
   <div class="aw-player" id="awPlayer">
@@ -219,7 +219,7 @@ function renderCatalog(){let q=(document.getElementById("search")?.value||"").to
 function renderHome(){document.getElementById("homeGrid").innerHTML=anime.slice(0,4).map(card).join("")}
 function go(page){document.querySelectorAll(".page").forEach(x=>x.classList.add("hidden"));document.getElementById(page).classList.remove("hidden");document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("active",x.dataset.page===page));if(page==="catalog")renderCatalog();if(page==="profile")renderProfile();if(page==="admin")renderAdmin();window.scrollTo({top:0,behavior:"smooth"})}
 function openAnimeByIndex(index){const item=anime[index];if(item)openAnime(item.name)}
-function openAnime(name){currentAnime=anime.find(a=>a.name===name)||anime[0];episode=1;document.getElementById("watchTitle").textContent=currentAnime.name;document.getElementById("watchDesc").textContent=currentAnime.desc;document.getElementById("detailGenre").textContent=currentAnime.genre;document.getElementById("detailYear").textContent=currentAnime.year;document.getElementById("detailRating").textContent="★ "+currentAnime.rating;if(currentAnime.img){document.getElementById("detailPoster").src=currentAnime.img;document.getElementById("detailPoster").style.visibility="visible";document.getElementById("detailBackdrop").style.backgroundImage="linear-gradient(90deg,rgba(9,9,20,.98),rgba(9,9,20,.82) 48%,rgba(9,9,20,.18)),url('"+currentAnime.img+"')"}else{document.getElementById("detailPoster").style.visibility="hidden";document.getElementById("detailBackdrop").style.backgroundImage="linear-gradient(90deg,rgba(9,9,20,.98),rgba(9,9,20,.82) 48%,rgba(9,9,20,.18))"}renderWatch();go("watch")}
+function openAnime(name){currentAnime=anime.find(a=>a.name===name)||anime[0];selectedSeason=1;episode=1;document.getElementById("watchTitle").textContent=currentAnime.name;document.getElementById("watchDesc").textContent=currentAnime.desc;document.getElementById("detailGenre").textContent=currentAnime.genre;document.getElementById("detailYear").textContent=currentAnime.year;document.getElementById("detailRating").textContent="★ "+currentAnime.rating;if(currentAnime.img){document.getElementById("detailPoster").src=currentAnime.img;document.getElementById("detailPoster").style.visibility="visible";document.getElementById("detailBackdrop").style.backgroundImage="linear-gradient(90deg,rgba(9,9,20,.98),rgba(9,9,20,.82) 48%,rgba(9,9,20,.18)),url('"+currentAnime.img+"')"}else{document.getElementById("detailPoster").style.visibility="hidden";document.getElementById("detailBackdrop").style.backgroundImage="linear-gradient(90deg,rgba(9,9,20,.98),rgba(9,9,20,.82) 48%,rgba(9,9,20,.18))"}renderWatch();go("watch")}
 function selectWatchSeason(value){
  selectedSeason=Math.max(1,Number(value)||1);
  const available=Object.keys(EPISODE_CATALOG[currentAnime.name]?.[selectedSeason]||{}).map(Number).sort((a,b)=>a-b);
@@ -587,7 +587,7 @@ const awVideo=()=>document.getElementById("awVideo");
 function awFormatTime(value){if(!Number.isFinite(value))return "0:00";const m=Math.floor(value/60),s=Math.floor(value%60);return m+":"+String(s).padStart(2,"0")}
 function awSetMessage(title,message){document.getElementById("awMessageTitle").textContent=title;document.getElementById("awMessage").textContent=message;document.getElementById("awOverlay").classList.remove("hidden")}
 function awHideMessage(){document.getElementById("awOverlay").classList.add("hidden")}
-function awProgressKey(){return "aniwave-progress-"+currentAnime.name+"-"+episode}
+function awProgressKey(){return "aniwave-progress-"+currentAnime.name+"-"+selectedSeason+"-"+episode}
 function awSaveProgress(){const v=awVideo();if(v&&Number.isFinite(v.currentTime))localStorage.setItem(awProgressKey(),JSON.stringify({time:v.currentTime,duration:v.duration||0}));}
 function awLoadEpisode(){
  const v=awVideo(), episodeData=getEpisodeData(currentAnime.name,selectedSeason,episode),source=episodeData?.url||"";
