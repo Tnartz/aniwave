@@ -80,7 +80,17 @@ footer{text-align:center;color:#777184;padding:30px 10px;font-size:12px}
   <label for="newAnimeGenre">Жанр</label><input class="field" id="newAnimeGenre" maxlength="40" placeholder="Экшен, романтика, приключения...">
   <div class="row"><div style="flex:1;min-width:130px"><label for="newAnimeYear">Год</label><input class="field" id="newAnimeYear" type="number" min="1900" max="2100" value="2026"></div><div style="flex:1;min-width:130px"><label for="newAnimeRating">Рейтинг</label><input class="field" id="newAnimeRating" type="number" min="0" max="10" step="0.1" value="8.0"></div></div>
   <label for="newAnimeEmoji">Эмодзи карточки</label><input class="field" id="newAnimeEmoji" maxlength="8" value="🎬">
-  <label for="newAnimePoster">Ссылка на постер (HTTPS)</label><input class="field" id="newAnimePoster" type="url" placeholder="https://example.com/poster.jpg">
+  <div class="panel" style="margin:14px 0;padding:16px">
+   <h4>Загрузка постера с компьютера</h4>
+   <p class="muted">Постер загрузится в Cloudinary, а ссылка сохранится в каталоге. Нужны Cloud name и unsigned upload preset.</p>
+   <label for="cloudinaryCloudName">Cloudinary Cloud name</label><input class="field" id="cloudinaryCloudName" placeholder="например, my-cloud">
+   <label for="cloudinaryUploadPreset">Unsigned upload preset</label><input class="field" id="cloudinaryUploadPreset" placeholder="например, aniwave_posters">
+   <button class="secondary" type="button" id="saveCloudinaryConfig">Сохранить настройки загрузки</button>
+   <label for="newAnimePosterFile">Выбрать постер (JPG, PNG или WebP, до 5 МБ)</label><input class="field" id="newAnimePosterFile" type="file" accept="image/jpeg,image/png,image/webp">
+   <img id="newAnimePosterPreview" alt="Предпросмотр постера" class="hidden" style="max-width:150px;max-height:220px;object-fit:cover;border-radius:12px;margin-top:10px">
+   <p id="posterUploadMessage" class="muted" role="status"></p>
+  </div>
+  <label for="newAnimePoster">Или ссылка на постер (HTTPS)</label><input class="field" id="newAnimePoster" type="url" placeholder="https://example.com/poster.jpg">
   <label for="newAnimeDesc">Описание</label><textarea class="field" id="newAnimeDesc" maxlength="600" rows="3" placeholder="Краткое описание..."></textarea>
   <div class="row"><button id="createAnime" type="button">Добавить в каталог</button></div>
   <p id="animeAdminMessage" class="muted" role="status"></p><div id="adminAnimeList" class="muted"></div>
@@ -237,6 +247,35 @@ async function loadAnimeCatalog(){
   if(isAdmin)renderAdminAnimeList();
  }catch(error){console.warn("Не удалось загрузить дополнительный каталог",error)}
 }
+function loadCloudinaryConfig(){
+ const cloud=document.getElementById("cloudinaryCloudName"),preset=document.getElementById("cloudinaryUploadPreset");
+ if(!cloud||!preset)return;
+ try{const saved=JSON.parse(localStorage.getItem("aniwaveCloudinaryConfig")||"{}");cloud.value=saved.cloud||"";preset.value=saved.preset||"";}catch(e){}
+}
+function saveCloudinaryConfig(){
+ const cloud=document.getElementById("cloudinaryCloudName").value.trim();
+ const preset=document.getElementById("cloudinaryUploadPreset").value.trim();
+ if(!/^[a-zA-Z0-9_-]{2,80}$/.test(cloud)||!/^[a-zA-Z0-9_-]{2,100}$/.test(preset)){document.getElementById("posterUploadMessage").textContent="Проверь Cloud name и имя preset.";return}
+ localStorage.setItem("aniwaveCloudinaryConfig",JSON.stringify({cloud,preset}));
+ document.getElementById("posterUploadMessage").textContent="Настройки загрузки сохранены в этом браузере.";
+}
+function previewAnimePoster(){
+ const file=document.getElementById("newAnimePosterFile").files[0],preview=document.getElementById("newAnimePosterPreview"),msg=document.getElementById("posterUploadMessage");
+ if(!file){preview.classList.add("hidden");return}
+ if(!["image/jpeg","image/png","image/webp"].includes(file.type)||file.size>5*1024*1024){document.getElementById("newAnimePosterFile").value="";preview.classList.add("hidden");msg.textContent="Выбери JPG, PNG или WebP размером до 5 МБ.";return}
+ preview.src=URL.createObjectURL(file);preview.classList.remove("hidden");msg.textContent="Постер выбран. Он загрузится при добавлении аниме.";
+}
+async function uploadAnimePoster(){
+ const file=document.getElementById("newAnimePosterFile").files[0];
+ if(!file)return document.getElementById("newAnimePoster").value.trim();
+ const config=JSON.parse(localStorage.getItem("aniwaveCloudinaryConfig")||"{}");
+ if(!config.cloud||!config.preset)throw new Error("Сначала сохрани Cloud name и unsigned upload preset.");
+ const form=new FormData();form.append("file",file);form.append("upload_preset",config.preset);form.append("folder","aniwave/posters");
+ const response=await fetch("https://api.cloudinary.com/v1_1/"+encodeURIComponent(config.cloud)+"/image/upload",{method:"POST",body:form});
+ const result=await response.json();
+ if(!response.ok||!result.secure_url)throw new Error(result.error?.message||"Cloudinary не принял изображение.");
+ return result.secure_url;
+}
 async function addAnimeFromAdmin(){
  const message=document.getElementById("animeAdminMessage");
  if(!user||!isAdmin){message.textContent="Нет прав администратора.";return}
@@ -245,7 +284,7 @@ async function addAnimeFromAdmin(){
  const year=Number(document.getElementById("newAnimeYear").value);
  const rating=Number(document.getElementById("newAnimeRating").value);
  const emoji=document.getElementById("newAnimeEmoji").value.trim()||"🎬";
- const img=document.getElementById("newAnimePoster").value.trim();
+ let img=document.getElementById("newAnimePoster").value.trim();
  const desc=document.getElementById("newAnimeDesc").value.trim();
  if(name.length<2||!genre||!desc){message.textContent="Заполни название, жанр и описание.";return}
  if(anime.some(item=>item.name.toLowerCase()===name.toLowerCase())){message.textContent="Такое название уже есть в каталоге.";return}
@@ -253,12 +292,12 @@ async function addAnimeFromAdmin(){
  if(!Number.isFinite(rating)||rating<0||rating>10){message.textContent="Рейтинг должен быть от 0 до 10.";return}
  if(img&&!/^https:\/\//i.test(img)){message.textContent="Постер должен иметь HTTPS-ссылку.";return}
  try{
-  const record={name,genre,year:String(year),rating:rating.toFixed(1),emoji,img,desc,createdAt:firebase.firestore.FieldValue.serverTimestamp()};
+  if(document.getElementById("newAnimePosterFile").files[0]){message.textContent="Загружаю постер...";img=await uploadAnimePoster();}\n  const record={name,genre,year:String(year),rating:rating.toFixed(1),emoji,img,desc,createdAt:firebase.firestore.FieldValue.serverTimestamp()};
   await db.collection("animeCatalog").doc(encodeURIComponent(name)).set(record);
   anime.push({name,genre,year:String(year),rating:rating.toFixed(1),emoji,img,desc,custom:true});
   document.getElementById("newAnimeName").value="";
   document.getElementById("newAnimeGenre").value="";
-  document.getElementById("newAnimePoster").value="";
+  document.getElementById("newAnimePoster").value="";\n  document.getElementById("newAnimePosterFile").value="";\n  document.getElementById("newAnimePosterPreview").classList.add("hidden");
   document.getElementById("newAnimeDesc").value="";
   message.textContent="Аниме добавлено в каталог!";
   renderHome();renderCatalog();renderAdminAnimeList();renderAdmin();
@@ -372,7 +411,7 @@ function selectPlan(name){document.getElementById("planMessage").textContent=`В
 document.querySelectorAll("#filters button").forEach(b=>b.addEventListener("click",()=>{currentFilter=b.dataset.filter;document.querySelectorAll("#filters button").forEach(x=>x.classList.toggle("active",x===b));renderCatalog()}));
 document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>go(b.dataset.page)));
 
-document.getElementById("createAnime").addEventListener("click",addAnimeFromAdmin);
+document.getElementById("createAnime").addEventListener("click",addAnimeFromAdmin);\ndocument.getElementById("saveCloudinaryConfig").addEventListener("click",saveCloudinaryConfig);\ndocument.getElementById("newAnimePosterFile").addEventListener("change",previewAnimePoster);\nloadCloudinaryConfig();
 renderHome();renderCatalog();renderWatch();initAuth();
 </script>
 </body></html>
