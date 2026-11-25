@@ -66,7 +66,7 @@ footer{text-align:center;color:#777184;padding:30px 10px;font-size:12px}
 #admin .admin-library-filters{display:grid;grid-template-columns:minmax(0,1fr) minmax(170px,220px);gap:10px;margin:14px 0 6px}#admin .admin-library-filters .field{margin:0}@media(max-width:650px){#admin .admin-library-filters{grid-template-columns:1fr}}
 
 #admin .admin-bunny-manager{border-top:1px solid #3a2d4d;margin-top:16px;padding-top:16px}#admin .admin-bunny-toolbar{display:grid;grid-template-columns:minmax(0,1fr) 190px;gap:10px;margin:14px 0 8px}#admin .admin-bunny-toolbar .field{margin:0}#admin .admin-bunny-search{display:flex;gap:8px;min-width:0}#admin .admin-bunny-search .field{flex:1;min-width:0}#admin .admin-bunny-list{display:grid;gap:10px;margin-top:12px}#admin .admin-bunny-item{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid #392d50;border-radius:13px;background:#151122;min-width:0}#admin .admin-bunny-thumb{width:88px;height:58px;flex:0 0 88px;border-radius:8px;overflow:hidden;background:#241a34;display:grid;place-items:center}#admin .admin-bunny-thumb img{width:100%;height:100%;object-fit:cover}#admin .admin-bunny-info{display:grid;gap:4px;min-width:0;flex:1}#admin .admin-bunny-info strong{overflow-wrap:anywhere}#admin .admin-bunny-info code{font-size:10px;opacity:.7;overflow-wrap:anywhere}#admin .admin-bunny-status{font-size:12px;color:#fbbf24}#admin .admin-bunny-status.is-ready{color:#4ade80}#admin .admin-bunny-status.is-error{color:#f87171}#admin .admin-bunny-copy{flex:0 0 auto}#admin .admin-bunny-bind{display:grid;grid-template-columns:minmax(150px,2fr) 90px 90px auto;gap:7px;margin-top:7px}#admin .admin-bunny-bind .field{margin:0;min-width:0;padding:8px;font-size:12px}#admin .admin-bunny-bind button{padding:8px 10px;font-size:12px}@media(max-width:650px){#admin .admin-bunny-bind{grid-template-columns:1fr 1fr}#admin .admin-bunny-bind select{grid-column:1/-1}#admin .admin-bunny-bind button{grid-column:1/-1}}#admin .admin-bunny-pagination{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:14px}#admin .admin-bunny-pagination button:disabled{opacity:.45;cursor:not-allowed}@media(max-width:650px){#admin .admin-bunny-toolbar{grid-template-columns:1fr}#admin .admin-bunny-search button{padding:10px}#admin .admin-bunny-item{flex-wrap:wrap}#admin .admin-bunny-info{min-width:calc(100% - 110px)}#admin .admin-bunny-copy{margin-left:auto}}
-</style>
+.legal-sources-panel{margin:18px 0;padding:20px;border:1px solid var(--line,#303044);border-radius:18px;background:var(--panel,#151522)}.legal-sources-list{display:grid;gap:10px}.legal-source-card{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;padding:14px;border:1px solid var(--line,#303044);border-radius:12px;background:rgba(255,255,255,.025)}.legal-source-card>div{display:grid;gap:5px}.legal-source-card span{font-size:13px;color:var(--muted,#aaa)}@media(max-width:600px){.legal-sources-panel{padding:14px}.legal-source-card{align-items:flex-start}.legal-source-card a{width:100%;text-align:center}}</style>
 </head>
 <body>
 <header><div class="logo">Ani<span>Wave</span></div><nav id="nav">
@@ -96,6 +96,11 @@ footer{text-align:center;color:#777184;padding:30px 10px;font-size:12px}
   </div>
   <div class="detail-poster"><img id="detailPoster" src="" alt="Постер аниме"></div>
 </div>
+<section class="legal-sources-panel" id="legalSourcesPanel">
+ <div class="detail-section-head"><div><div class="eyebrow">ЛЕГАЛЬНЫЙ ПРОСМОТР · РОССИЯ</div><h2>Где смотреть легально</h2></div><span class="meta">Внешние площадки</span></div>
+ <div id="legalSourcesList" class="legal-sources-list"></div>
+ <p class="review-meta">Ссылка ведёт на карточку тайтла, а не гарантирует наличие подписки или доступность всех серий. Доступность проверяй на самой площадке.</p>
+</section>
 <div class="detail-overview"><div class="detail-stat"><strong id="detailSeasonCount">1</strong><span>Сезонов</span></div><div class="detail-stat"><strong id="detailEpisodeCount">12</strong><span>Добавлено серий</span></div><div class="detail-stat"><strong id="detailYearStat">2024</strong><span>Год выхода · <span id="detailGenreStat">Экшен</span></span></div></div>
 <div class="continue-card hidden" id="continueCard"><div><strong>▶ Продолжить просмотр</strong><p id="continueInfo">Твоя последняя серия</p></div><button type="button" id="continueButton" onclick="resumeAnime()">Продолжить →</button></div>
 <section class="reviews-panel"><div class="detail-section-head"><div><div class="eyebrow">СООБЩЕСТВО ANIWAVE</div><h2>Оценки и отзывы</h2></div></div><div class="review-summary" id="reviewSummary">Загружаем отзывы…</div><div class="review-form" id="reviewForm"><div class="review-form-row"><label for="reviewRating">Твоя оценка</label><select id="reviewRating"><option value="10">10 — шедевр</option><option value="9">9 — отлично</option><option value="8" selected>8 — очень хорошо</option><option value="7">7 — хорошо</option><option value="6">6 — неплохо</option><option value="5">5 — средне</option><option value="4">4 — слабо</option><option value="3">3 — плохо</option><option value="2">2 — очень плохо</option><option value="1">1 — ужасно</option></select></div><textarea id="reviewText" maxlength="1200" placeholder="Поделись впечатлениями об этом аниме…"></textarea><div class="review-form-row"><button type="button" onclick="saveAnimeReview()">Опубликовать отзыв</button><span class="review-meta" id="reviewFormMessage">Нужен вход в аккаунт AniWave</span></div></div><div class="review-list" id="reviewList"></div></section>
@@ -233,6 +238,28 @@ const anime=[
 {name:"Токийский гуль",genre:"Ужасы",year:"2014",rating:"7.8",emoji:"🩸",img:"https://image.tmdb.org/t/p/w500/5XBk7T4NsGeN9RG39y2nU6gRWQl.jpg",desc:"После роковой встречи студент Канеки оказывается между человеческим миром и миром гулей."},
 {name:"Тестовый ролик — Big Buck Bunny",genre:"Тест",year:"2008",rating:"—",emoji:"🐰",img:"https://vz-1db794dd-dbb.b-cdn.net/0a1096c5-c038-4feb-96ba-7f4ee14de45b/thumbnail.jpg",desc:"Демонстрационный ролик Big Buck Bunny для проверки видеоплеера AniWave. © Blender Foundation. Лицензия CC BY 3.0."}
 ];
+const LEGAL_CATALOG_LINKS={
+ "Атака титанов":{platform:"Кинопоиск",url:"https://www.kinopoisk.ru/series/749374/"},
+ "Семья шпиона":{platform:"Кинопоиск",url:"https://www.kinopoisk.ru/series/4686248/"},
+ "Провожающая в последний путь Фрирен":{platform:"Кинопоиск",url:"https://www.kinopoisk.ru/series/5401195/"},
+ "Ван-Пис":{platform:"Кинопоиск",url:"https://www.kinopoisk.ru/series/382731/"},
+ "Охотник × Охотник":{platform:"Кинопоиск",url:"https://www.kinopoisk.ru/series/647602/"},
+ "Токийский гуль":{platform:"Кинопоиск",url:"https://www.kinopoisk.ru/series/841681/"},
+ "Стальной алхимик: Братство":{platform:"Кинопоиск",url:"https://www.kinopoisk.ru/series/452838/"},
+ "Моб Психо 100":{platform:"Кинопоиск",url:"https://www.kinopoisk.ru/series/1002686/"},
+ "Тетрадь смерти":{platform:"Кинопоиск",url:"https://www.kinopoisk.ru/series/406148/"},
+ "Врата Штейна":{platform:"Кинопоиск",url:"https://www.kinopoisk.ru/series/586251/"},
+ "Волейбол!!":{platform:"Кинопоиск",url:"https://www.kinopoisk.ru/series/840073/"},
+ "Наруто":{platform:"Кинопоиск",url:"https://www.kinopoisk.ru/series/283290/"},
+ "Твоё имя":{platform:"Кинопоиск",url:"https://www.kinopoisk.ru/film/958722/"},
+ "Форма голоса":{platform:"Кинопоиск",url:"https://www.kinopoisk.ru/film/963343/"}
+};
+function renderLegalSources(){
+ const list=document.getElementById("legalSourcesList");if(!list)return;
+ const source=LEGAL_CATALOG_LINKS[currentAnime?.name];
+ if(!source){list.innerHTML='<div class="legal-source-card"><strong>Источник пока не подтверждён</strong><span>Для этого тайтла ещё не найдена проверенная карточка на российской легальной площадке.</span></div>';return;}
+ list.innerHTML='<div class="legal-source-card"><div><strong>'+escapeHTML(source.platform)+'</strong><span>Карточка тайтла найдена · доступность просмотра в России не подтверждена</span></div><a class="button secondary" href="'+escapeHTML(source.url)+'" target="_blank" rel="noopener noreferrer">Открыть карточку ↗</a></div>';
+}
 const firebaseConfig = {
   apiKey: "AIzaSyCA5J5Xkq7zuuqUTGzIXUv_LDIa9y3y1ps",
   authDomain: "aniwave-3fb23.firebaseapp.com",
@@ -305,7 +332,7 @@ function resumeSavedAnimeByIndex(index,season,episodeNumber){const item=anime[in
 function renderHome(){renderFeatured();document.getElementById("homeGrid").innerHTML=anime.slice(0,6).map(card).join("");document.getElementById("topRatedGrid").innerHTML=[...anime].sort((a,b)=>Number(b.rating)-Number(a.rating)).slice(0,6).map(card).join("");renderRecommendations();renderContinueWatching()}
 function go(page){document.querySelectorAll(".page").forEach(x=>x.classList.add("hidden"));document.getElementById(page).classList.remove("hidden");document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("active",x.dataset.page===page));if(page==="catalog")renderCatalog();if(page==="profile")renderProfile();if(page==="admin")renderAdmin();window.scrollTo({top:0,behavior:"smooth"})}
 function openAnimeByIndex(index){const item=anime[index];if(item)openAnime(item.name)}
-function openAnime(name){currentAnime=anime.find(a=>a.name===name)||anime[0];selectedSeason=1;episode=1;document.getElementById("watchTitle").textContent=currentAnime.name;document.getElementById("watchDesc").textContent=currentAnime.desc;document.getElementById("detailGenre").textContent=currentAnime.genre;document.getElementById("detailYear").textContent=currentAnime.year;document.getElementById("detailRating").textContent="★ "+currentAnime.rating;document.getElementById("detailYearStat").textContent=currentAnime.year;document.getElementById("detailGenreStat").textContent=currentAnime.genre;if(currentAnime.img){document.getElementById("detailPoster").src=currentAnime.img;document.getElementById("detailPoster").style.visibility="visible";document.getElementById("detailBackdrop").style.backgroundImage="linear-gradient(90deg,rgba(9,9,20,.98),rgba(9,9,20,.82) 48%,rgba(9,9,20,.18)),url('"+currentAnime.img+"')"}else{document.getElementById("detailPoster").style.visibility="hidden";document.getElementById("detailBackdrop").style.backgroundImage="linear-gradient(90deg,rgba(9,9,20,.98),rgba(9,9,20,.82) 48%,rgba(9,9,20,.18))"}renderWatch();go("watch")}
+function openAnime(name){currentAnime=anime.find(a=>a.name===name)||anime[0];selectedSeason=1;episode=1;document.getElementById("watchTitle").textContent=currentAnime.name;document.getElementById("watchDesc").textContent=currentAnime.desc;document.getElementById("detailGenre").textContent=currentAnime.genre;document.getElementById("detailYear").textContent=currentAnime.year;document.getElementById("detailRating").textContent="★ "+currentAnime.rating;document.getElementById("detailYearStat").textContent=currentAnime.year;document.getElementById("detailGenreStat").textContent=currentAnime.genre;renderLegalSources();if(currentAnime.img){document.getElementById("detailPoster").src=currentAnime.img;document.getElementById("detailPoster").style.visibility="visible";document.getElementById("detailBackdrop").style.backgroundImage="linear-gradient(90deg,rgba(9,9,20,.98),rgba(9,9,20,.82) 48%,rgba(9,9,20,.18)),url('"+currentAnime.img+"')"}else{document.getElementById("detailPoster").style.visibility="hidden";document.getElementById("detailBackdrop").style.backgroundImage="linear-gradient(90deg,rgba(9,9,20,.98),rgba(9,9,20,.82) 48%,rgba(9,9,20,.18))"}renderWatch();go("watch")}
 function selectWatchSeason(value){
  selectedSeason=Math.max(1,Number(value)||1);
  const available=Object.keys(EPISODE_CATALOG[currentAnime.name]?.[selectedSeason]||{}).map(Number).sort((a,b)=>a-b);
