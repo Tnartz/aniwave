@@ -65,7 +65,7 @@ footer{text-align:center;color:#777184;padding:30px 10px;font-size:12px}
 
 #admin .admin-library-filters{display:grid;grid-template-columns:minmax(0,1fr) minmax(170px,220px);gap:10px;margin:14px 0 6px}#admin .admin-library-filters .field{margin:0}@media(max-width:650px){#admin .admin-library-filters{grid-template-columns:1fr}}
 
-#admin .admin-bunny-manager{border-top:1px solid #3a2d4d;margin-top:16px;padding-top:16px}#admin .admin-bunny-toolbar{display:grid;grid-template-columns:minmax(0,1fr) 190px;gap:10px;margin:14px 0 8px}#admin .admin-bunny-toolbar .field{margin:0}#admin .admin-bunny-search{display:flex;gap:8px;min-width:0}#admin .admin-bunny-search .field{flex:1;min-width:0}#admin .admin-bunny-list{display:grid;gap:10px;margin-top:12px}#admin .admin-bunny-item{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid #392d50;border-radius:13px;background:#151122;min-width:0}#admin .admin-bunny-thumb{width:88px;height:58px;flex:0 0 88px;border-radius:8px;overflow:hidden;background:#241a34;display:grid;place-items:center}#admin .admin-bunny-thumb img{width:100%;height:100%;object-fit:cover}#admin .admin-bunny-info{display:grid;gap:4px;min-width:0;flex:1}#admin .admin-bunny-info strong{overflow-wrap:anywhere}#admin .admin-bunny-info code{font-size:10px;opacity:.7;overflow-wrap:anywhere}#admin .admin-bunny-status{font-size:12px;color:#fbbf24}#admin .admin-bunny-status.is-ready{color:#4ade80}#admin .admin-bunny-status.is-error{color:#f87171}#admin .admin-bunny-copy{flex:0 0 auto}#admin .admin-bunny-pagination{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:14px}#admin .admin-bunny-pagination button:disabled{opacity:.45;cursor:not-allowed}@media(max-width:650px){#admin .admin-bunny-toolbar{grid-template-columns:1fr}#admin .admin-bunny-search button{padding:10px}#admin .admin-bunny-item{flex-wrap:wrap}#admin .admin-bunny-info{min-width:calc(100% - 110px)}#admin .admin-bunny-copy{margin-left:auto}}
+#admin .admin-bunny-manager{border-top:1px solid #3a2d4d;margin-top:16px;padding-top:16px}#admin .admin-bunny-toolbar{display:grid;grid-template-columns:minmax(0,1fr) 190px;gap:10px;margin:14px 0 8px}#admin .admin-bunny-toolbar .field{margin:0}#admin .admin-bunny-search{display:flex;gap:8px;min-width:0}#admin .admin-bunny-search .field{flex:1;min-width:0}#admin .admin-bunny-list{display:grid;gap:10px;margin-top:12px}#admin .admin-bunny-item{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid #392d50;border-radius:13px;background:#151122;min-width:0}#admin .admin-bunny-thumb{width:88px;height:58px;flex:0 0 88px;border-radius:8px;overflow:hidden;background:#241a34;display:grid;place-items:center}#admin .admin-bunny-thumb img{width:100%;height:100%;object-fit:cover}#admin .admin-bunny-info{display:grid;gap:4px;min-width:0;flex:1}#admin .admin-bunny-info strong{overflow-wrap:anywhere}#admin .admin-bunny-info code{font-size:10px;opacity:.7;overflow-wrap:anywhere}#admin .admin-bunny-status{font-size:12px;color:#fbbf24}#admin .admin-bunny-status.is-ready{color:#4ade80}#admin .admin-bunny-status.is-error{color:#f87171}#admin .admin-bunny-copy{flex:0 0 auto}#admin .admin-bunny-bind{display:grid;grid-template-columns:minmax(150px,2fr) 90px 90px auto;gap:7px;margin-top:7px}#admin .admin-bunny-bind .field{margin:0;min-width:0;padding:8px;font-size:12px}#admin .admin-bunny-bind button{padding:8px 10px;font-size:12px}@media(max-width:650px){#admin .admin-bunny-bind{grid-template-columns:1fr 1fr}#admin .admin-bunny-bind select{grid-column:1/-1}#admin .admin-bunny-bind button{grid-column:1/-1}}#admin .admin-bunny-pagination{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:14px}#admin .admin-bunny-pagination button:disabled{opacity:.45;cursor:not-allowed}@media(max-width:650px){#admin .admin-bunny-toolbar{grid-template-columns:1fr}#admin .admin-bunny-search button{padding:10px}#admin .admin-bunny-item{flex-wrap:wrap}#admin .admin-bunny-info{min-width:calc(100% - 110px)}#admin .admin-bunny-copy{margin-left:auto}}
 </style>
 </head>
 <body>
@@ -1111,12 +1111,53 @@ function renderBunnyVideoItems(){
   const thumb=video.thumbnailFileName?"https://vz-1db794dd-dbb.b-cdn.net/"+encodeURIComponent(video.guid)+"/"+encodeURIComponent(video.thumbnailFileName):"";
   const link=bunnyEpisodeLinks[video.guid];
   const relation=link?"Привязано: "+link.animeTitle+" · S"+link.season+"E"+link.episode:"Не привязано к серии";
-  return '<article class="admin-bunny-item"><div class="admin-bunny-thumb">'+(thumb?'<img src="'+thumb+'" alt="" loading="lazy">':'<span>▶</span>')+'</div><div class="admin-bunny-info"><strong>'+escapeHTML(video.title||"Без названия")+'</strong><span class="admin-bunny-status '+(ready?"is-ready":status===5?"is-error":"")+'">'+escapeHTML(bunnyStatusLabel(status))+'</span><span class="review-meta">'+duration+' · '+size+'</span><span class="review-meta">'+escapeHTML(relation)+'</span><code>'+escapeHTML(video.guid||"")+'</code></div><button class="secondary admin-bunny-copy" type="button" data-bunny-copy="'+escapeHTML(video.guid||"")+'">Копировать ID</button></article>';
+  const animeOptions=anime.map(item=>'<option value="'+escapeHTML(item.name)+'"'+(link&&link.animeTitle===item.name?" selected":"")+'>'+escapeHTML(item.name)+'</option>').join("");
+  const selectedSeason=link?link.season:1,selectedEpisode=link?link.episode:1;
+  return '<article class="admin-bunny-item"><div class="admin-bunny-thumb">'+(thumb?'<img src="'+thumb+'" alt="" loading="lazy">':'<span>▶</span>')+'</div><div class="admin-bunny-info"><strong>'+escapeHTML(video.title||"Без названия")+'</strong><span class="admin-bunny-status '+(ready?"is-ready":status===5?"is-error":"")+'">'+escapeHTML(bunnyStatusLabel(status))+'</span><span class="review-meta">'+duration+' · '+size+'</span><span class="review-meta">'+escapeHTML(relation)+'</span><code>'+escapeHTML(video.guid||"")+'</code><div class="admin-bunny-bind"><select class="field" data-bunny-anime="'+escapeHTML(video.guid||"")+'" aria-label="Аниме для привязки">'+animeOptions+'</select><input class="field" type="number" min="1" max="99" value="'+selectedSeason+'" data-bunny-season="'+escapeHTML(video.guid||"")+'" aria-label="Сезон"><input class="field" type="number" min="1" max="999" value="'+selectedEpisode+'" data-bunny-episode="'+escapeHTML(video.guid||"")+'" aria-label="Серия"><button class="secondary" type="button" data-bunny-bind="'+escapeHTML(video.guid||"")+'">Сохранить привязку</button></div></div><button class="secondary admin-bunny-copy" type="button" data-bunny-copy="'+escapeHTML(video.guid||"")+'">Копировать ID</button></article>';
  }).join("")||'<p class="muted">Нет видео для выбранного фильтра на этой странице.</p>';
+ list.querySelectorAll("[data-bunny-bind]").forEach(btn=>btn.addEventListener("click",()=>bindBunnyVideo(btn.dataset.bunnyBind)));
  list.querySelectorAll("[data-bunny-copy]").forEach(btn=>btn.addEventListener("click",async()=>{
   try{await navigator.clipboard.writeText(btn.dataset.bunnyCopy);document.getElementById("bunnyLibraryMessage").textContent="ID видео скопирован."}
   catch{document.getElementById("bunnyLibraryMessage").textContent="Не удалось скопировать автоматически. Выдели ID в карточке видео."}
  }));
+}
+async function bindBunnyVideo(videoId){
+ const message=document.getElementById("bunnyLibraryMessage");
+ if(!user||!isAdmin){message.textContent="Требуются права администратора.";return}
+ const animeSelect=document.querySelector('[data-bunny-anime="'+videoId+'"]');
+ const seasonInput=document.querySelector('[data-bunny-season="'+videoId+'"]');
+ const episodeInput=document.querySelector('[data-bunny-episode="'+videoId+'"]');
+ const animeTitle=animeSelect?.value||"",season=Number(seasonInput?.value),episode=Number(episodeInput?.value);
+ if(!animeTitle||!Number.isInteger(season)||season<1||season>99||!Number.isInteger(episode)||episode<1||episode>999){message.textContent="Проверь аниме, сезон и номер серии.";return}
+ const video=bunnyLoadedItems.find(item=>item.guid===videoId);
+ if(!video){message.textContent="Видео не найдено в текущем списке. Обнови видеотеку.";return}
+ const targetId=encodeURIComponent(animeTitle)+"_s"+season+"_e"+episode;
+ const targetRef=db.collection("streams").doc(targetId);
+ const url="https://vz-1db794dd-dbb.b-cdn.net/"+encodeURIComponent(videoId)+"/playlist.m3u8";
+ const button=document.querySelector('[data-bunny-bind="'+videoId+'"]');
+ if(button){button.disabled=true;button.textContent="Сохраняем…"}
+ try{
+  const existingLinks=await db.collection("streams").where("bunnyVideoId","==",videoId).get();
+  await db.runTransaction(async transaction=>{
+   const targetSnap=await transaction.get(targetRef);
+   if(targetSnap.exists&&targetSnap.data().bunnyVideoId&&targetSnap.data().bunnyVideoId!==videoId){
+    throw new Error("В этой серии уже есть другое видео Bunny. Сначала освободи серию от старой привязки.");
+   }
+   const oldDocs=[];
+   for(const doc of existingLinks.docs){
+    if(doc.id===targetId)continue;
+    oldDocs.push(doc);
+   }
+   for(const doc of oldDocs){
+    transaction.set(doc.ref,{bunnyVideoId:firebase.firestore.FieldValue.delete(),bunnyStatus:firebase.firestore.FieldValue.delete(),url:firebase.firestore.FieldValue.delete(),updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+   }
+   transaction.set(targetRef,{animeTitle,season,episode,title:video.title||"",url,bunnyVideoId:videoId,bunnyStatus:"uploaded",deleted:false,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+  });
+  message.textContent="Видео привязано к «"+animeTitle+"», сезон "+season+", серия "+episode+".";
+  await loadBunnyVideos(bunnyCurrentPage);
+  await loadStreams();
+ }catch(error){message.textContent="Не удалось сохранить привязку: "+error.message}
+ finally{if(button){button.disabled=false;button.textContent="Сохранить привязку"}}
 }
 async function uploadVideoToBunny(){
   const file=document.getElementById("bunnyVideoFile").files[0],button=document.getElementById("bunnyUploadButton"),message=document.getElementById("bunnyUploadMessage"),status=document.getElementById("bunnyUploadStatus"),percent=document.getElementById("bunnyUploadPercent"),bar=document.getElementById("bunnyUploadProgress");
