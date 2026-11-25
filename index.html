@@ -846,7 +846,7 @@ async function checkStreamUrl(animeTitle,season,ep,button){
  try{
   const docId=encodeURIComponent(animeTitle)+"_s"+season+"_e"+ep;
   await db.collection("streams").doc(docId).set({lastCheckStatus:result,lastCheckMessage:message,lastCheckAt:firebase.firestore.Timestamp.fromDate(checkedAt)},{merge:true});
-  const item=EPISODE_CATALOG[animeTitle]?.[season]?.[ep];if(item){item.lastCheckStatus=result;item.lastCheckMessage=message;item.lastCheckAt:checkedAt}
+  const item=EPISODE_CATALOG[animeTitle]?.[season]?.[ep];if(item){item.lastCheckStatus=result;item.lastCheckMessage=message;item.lastCheckAt=checkedAt}
   if(status)status.textContent=visible+" · Последняя проверка: "+checkedAt.toLocaleString("ru-RU");
  }catch(saveError){if(status)status.textContent=visible+" · Не удалось сохранить историю: "+saveError.message}
  finally{button.disabled=false;button.textContent=original}
