@@ -117,7 +117,7 @@ footer{text-align:center;color:#777184;padding:30px 10px;font-size:12px}
 <div class="panel"><h3>Управление HLS-источниками</h3>
   <p class="muted">Добавляй сезоны и серии с HTTPS HLS-ссылками .m3u8 только на видео, которое ты вправе распространять. Можно задать название каждой серии. Тестовый поток не является серией аниме.</p>
   <label for="adminAnime">Аниме</label><select class="field" id="adminAnime"></select>
-  <div class="row"><div style="flex:1;min-width:120px"><label for="adminSeason">Номер сезона</label><input class="field" id="adminSeason" type="number" min="1" max="99" value="1"></div><div style="flex:1;min-width:120px"><label for="adminEpisode">Номер серии</label><input class="field" id="adminEpisode" type="number" min="1" max="999" value="1"></div></div><label for="adminEpisodeTitle">Название серии (необязательно)</label><input class="field" id="adminEpisodeTitle" maxlength="120" placeholder="Например: Начало охоты">
+  <div class="row"><div style="flex:1;min-width:120px"><label for="adminSeason">Номер сезона</label><input class="field" id="adminSeason" type="number" min="1" max="99" value="1"></div><div style="flex:1;min-width:120px"><label for="adminEpisode">Номер серии</label><input class="field" id="adminEpisode" type="number" min="1" max="999" value="1"></div></div><div class="row"><button class="secondary" id="adminAddSeason" type="button">＋ Добавить сезон</button></div><label for="adminEpisodeTitle">Название серии (необязательно)</label><input class="field" id="adminEpisodeTitle" maxlength="120" placeholder="Например: Начало охоты">
   <label for="adminUrl">HLS URL (.m3u8)</label><input class="field" id="adminUrl" type="url" placeholder="https://example.com/episode.m3u8">
   <div class="row"><button id="adminSave" type="button">Сохранить источник</button><button class="secondary" id="adminReload" type="button">Обновить список</button></div>
   <p id="adminMessage" class="muted" role="status"></p>
@@ -320,6 +320,7 @@ const HLS_SOURCES = {
  "Ван-Пис": {}
 };
 const EPISODE_CATALOG={};
+const SEASON_CATALOG={};
 let selectedSeason=1;
 let isAdmin=false;
 async function seedJujutsuKaisen(){
@@ -346,6 +347,7 @@ async function loadAnimeCatalog(){
   snapshot.forEach(doc=>{
    const data=doc.data();
    if(data.name){
+    if(Array.isArray(data.seasons))SEASON_CATALOG[data.name]=data.seasons.map(Number).filter(n=>Number.isInteger(n)&&n>0&&n<=99);
     const existing=anime.find(item=>item.name===data.name);
     if(existing){
      if(data.img)existing.img=data.img;
@@ -452,9 +454,9 @@ function getEpisodeData(animeTitle,season,ep){
  return EPISODE_CATALOG[animeTitle]?.[season]?.[ep]||(season===1&&HLS_SOURCES[animeTitle]?.[ep]?{url:HLS_SOURCES[animeTitle][ep],title:""}:null);
 }
 function getAvailableSeasons(animeTitle){
- const seasons=Object.keys(EPISODE_CATALOG[animeTitle]||{}).map(Number);
- if(HLS_SOURCES[animeTitle]&&Object.keys(HLS_SOURCES[animeTitle]).length&&!seasons.includes(1))seasons.push(1);
- return seasons.sort((a,b)=>a-b);
+ const seasons=[...(SEASON_CATALOG[animeTitle]||[]),...Object.keys(EPISODE_CATALOG[animeTitle]||{}).map(Number)];
+ if(HLS_SOURCES[animeTitle]&&Object.keys(HLS_SOURCES[animeTitle]).length)seasons.push(1);
+ return [...new Set(seasons)].sort((a,b)=>a-b);
 }
 function refreshPosterAnimeSelect(){
  const select=document.getElementById("posterAnimeSelect");if(!select)return;
@@ -537,12 +539,31 @@ function renderAdmin(){
  if(!select.options.length)select.innerHTML=anime.map(a=>'<option value="'+escapeHTML(a.name)+'">'+escapeHTML(a.name)+'</option>').join("");
  const list=document.getElementById("adminStreams");
  const rows=[];
+ Object.keys(SEASON_CATALOG).forEach(name=>(SEASON_CATALOG[name]||[]).forEach(season=>rows.push('<div class="muted" style="padding:6px 0">📁 '+escapeHTML(name)+' · сезон '+season+' (создан)</div>')));
  Object.keys(EPISODE_CATALOG).forEach(name=>Object.keys(EPISODE_CATALOG[name]||{}).forEach(season=>Object.keys(EPISODE_CATALOG[name][season]||{}).forEach(ep=>{
   const item=EPISODE_CATALOG[name][season][ep];
   rows.push('<div class="row" style="justify-content:space-between;border-bottom:1px solid #332b48;padding:10px 0"><span>'+escapeHTML(name)+' · сезон '+season+' · серия '+ep+(item.title?' — '+escapeHTML(item.title):'')+'</span><button class="secondary" type="button" data-delete-stream="'+encodeURIComponent(name)+'" data-season="'+season+'" data-episode="'+ep+'">Удалить</button></div>');
  })));
  list.innerHTML=rows.join("")||"Пока нет добавленных источников.";
  list.querySelectorAll("[data-delete-stream]").forEach(button=>button.addEventListener("click",()=>deleteStream(decodeURIComponent(button.dataset.deleteStream),Number(button.dataset.season),Number(button.dataset.episode))));
+}
+async function addAnimeSeason(){
+ const message=document.getElementById("adminMessage");
+ if(!user||!isAdmin){message.textContent="Нет прав администратора.";return}
+ const animeTitle=document.getElementById("adminAnime").value;
+ const season=Number(document.getElementById("adminSeason").value);
+ if(!animeTitle){message.textContent="Сначала выбери аниме.";return}
+ if(!Number.isInteger(season)||season<1||season>99){message.textContent="Укажи номер сезона от 1 до 99.";return}
+ try{
+  const seasons=[...new Set([...(SEASON_CATALOG[animeTitle]||[]),...Object.keys(EPISODE_CATALOG[animeTitle]||{}).map(Number),season])].sort((a,b)=>a-b);
+  await db.collection("animeCatalog").doc(encodeURIComponent(animeTitle)).set({name:animeTitle,seasons,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+  SEASON_CATALOG[animeTitle]=seasons;
+  selectedSeason=season;
+  document.getElementById("adminEpisode").value=1;
+  message.textContent="Сезон "+season+" добавлен для «"+animeTitle+"». Теперь можешь добавлять серии отдельно.";
+  renderAdmin();
+  if(currentAnime.name===animeTitle){episode=1;renderWatch()}
+ }catch(error){message.textContent="Не удалось добавить сезон: "+error.message}
 }
 async function saveStream(){
  const message=document.getElementById("adminMessage");
@@ -583,6 +604,7 @@ async function deleteStream(animeTitle,season,ep){
  }catch(error){document.getElementById("adminMessage").textContent="Не удалось удалить: "+error.message}
 }
 document.getElementById("adminSave").addEventListener("click",saveStream);
+document.getElementById("adminAddSeason").addEventListener("click",addAnimeSeason);
 document.getElementById("adminReload").addEventListener("click",loadStreams);
 
 let awHls=null;
