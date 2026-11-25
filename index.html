@@ -131,6 +131,7 @@ footer{text-align:center;color:#777184;padding:30px 10px;font-size:12px}
   <div class="row"><div style="flex:1;min-width:120px"><label for="adminSeason">Номер сезона</label><input class="field" id="adminSeason" type="number" min="1" max="99" value="1"></div><div style="flex:1;min-width:120px"><label for="adminEpisode">Номер серии</label><input class="field" id="adminEpisode" type="number" min="1" max="999" value="1"></div></div><div class="row"><button class="secondary" id="adminAddSeason" type="button">＋ Добавить сезон</button></div><label for="adminEpisodeTitle">Название серии (необязательно)</label><input class="field" id="adminEpisodeTitle" maxlength="120" placeholder="Например: Начало охоты">
   <label for="adminUrl">HLS URL (.m3u8)</label><input class="field" id="adminUrl" type="url" placeholder="https://example.com/episode.m3u8">
   <div class="row"><button id="adminSave" type="button">Сохранить источник</button><button class="secondary" id="adminReload" type="button">Обновить список</button></div>
+  <div style="border-top:1px solid #3a2d4d;margin-top:18px;padding-top:16px"><h4>Пакетное добавление серий</h4><p class="muted">Выбери аниме и сезон выше, затем вставь серии по одной на строку в формате: номер | название | HTTPS-ссылка .m3u8. Название можно не указывать. Уже существующие серии будут пропущены, а не перезаписаны.</p><textarea class="field" id="adminBulkEpisodes" rows="7" placeholder="1 | Начало охоты | https://example.com/episode1.m3u8&#10;2 | Новый противник | https://example.com/episode2.m3u8&#10;3 | https://example.com/episode3.m3u8"></textarea><div class="row"><button type="button" id="adminBulkSave">Добавить серии списком</button></div><p class="muted" id="adminBulkMessage" role="status"></p><div class="muted" id="adminBulkResults"></div></div>
   <p id="adminMessage" class="muted" role="status"></p>
 </div>
 <div class="panel"><h3>Добавленные источники</h3><div class="row" style="gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px"><button class="secondary" type="button" id="adminCheckAllStreams">Проверить все потоки</button><span class="muted" id="adminCheckAllStatus" role="status">Проверка доступности всех добавленных HLS-источников</span></div><div id="adminStreams" class="muted">Загрузка...</div></div>
@@ -906,6 +907,51 @@ async function checkStreamUrl(animeTitle,season,ep,button){
  finally{button.disabled=false;button.textContent=original}
 }
 
+async function saveBulkEpisodes(){
+ const message=document.getElementById("adminBulkMessage"),results=document.getElementById("adminBulkResults"),button=document.getElementById("adminBulkSave");
+ if(!user||!isAdmin){message.textContent="Нет прав администратора.";return}
+ const animeTitle=document.getElementById("adminAnime").value,season=Number(document.getElementById("adminSeason").value);
+ if(!animeTitle||!Number.isInteger(season)||season<1||season>99){message.textContent="Выбери аниме и корректный сезон.";return}
+ const raw=document.getElementById("adminBulkEpisodes").value.split(/\r?\n/).map(line=>line.trim()).filter(Boolean);
+ if(!raw.length){message.textContent="Вставь хотя бы одну серию.";return}
+ const parsed=[],errors=[],seen=new Set();
+ raw.forEach((line,index)=>{
+  const parts=line.split("|").map(part=>part.trim());
+  let ep,title,url;
+  if(parts.length===2){ep=Number(parts[0]);title="";url=parts[1]}
+  else if(parts.length===3){ep=Number(parts[0]);title=parts[1];url=parts[2]}
+  else{errors.push("Строка "+(index+1)+": используй формат номер | название | URL");return}
+  if(!Number.isInteger(ep)||ep<1||ep>999){errors.push("Строка "+(index+1)+": номер серии должен быть от 1 до 999");return}
+  if(!/^https:\/\//i.test(url)||!/\.m3u8(\?|#|$)/i.test(url)){errors.push("Строка "+(index+1)+": нужна HTTPS-ссылка .m3u8");return}
+  if(seen.has(ep)){errors.push("Строка "+(index+1)+": номер серии "+ep+" повторяется");return}
+  seen.add(ep);parsed.push({episode:ep,title:title.slice(0,120),url});
+ });
+ if(errors.length){message.textContent="Исправь ошибки перед сохранением ("+errors.length+").";results.innerHTML=errors.map(x=>"<p>"+escapeHTML(x)+"</p>").join("");return}
+ if(parsed.length>350){message.textContent="За один раз можно добавить не более 350 серий.";return}
+ button.disabled=true;results.innerHTML="";message.textContent="Проверяем существующие серии…";
+ try{
+  const refs=parsed.map(item=>({item,ref:db.collection("streams").doc(encodeURIComponent(animeTitle)+"_s"+season+"_e"+item.episode)}));
+  const snapshots=await Promise.all(refs.map(entry=>entry.ref.get()));
+  const fresh=refs.filter((entry,index)=>!snapshots[index].exists);
+  const skipped=refs.length-fresh.length;
+  if(fresh.length){
+   const batch=db.batch();
+   fresh.forEach(({item,ref})=>batch.set(ref,{animeTitle,season,episode:item.episode,title:item.title,url:item.url,updatedAt:firebase.firestore.FieldValue.serverTimestamp()}));
+   await batch.commit();
+   if(!EPISODE_CATALOG[animeTitle])EPISODE_CATALOG[animeTitle]={};
+   if(!EPISODE_CATALOG[animeTitle][season])EPISODE_CATALOG[animeTitle][season]={};
+   fresh.forEach(({item})=>{
+    EPISODE_CATALOG[animeTitle][season][item.episode]={url:item.url,title:item.title};
+    if(season===1){if(!HLS_SOURCES[animeTitle])HLS_SOURCES[animeTitle]={};HLS_SOURCES[animeTitle][item.episode]=item.url}
+   });
+  }
+  message.textContent="Готово: добавлено "+fresh.length+" · пропущено существующих "+skipped+" · ошибок "+errors.length+".";
+  results.innerHTML=fresh.map(({item})=>"<p>✓ Серия "+item.episode+(item.title?" — "+escapeHTML(item.title):"")+" добавлена</p>").join("")+(skipped?"<p>ℹ Уже существующие номера не изменялись: "+refs.filter((entry,index)=>snapshots[index].exists).map(entry=>entry.item.episode).join(", ")+"</p>":"");
+  document.getElementById("adminBulkEpisodes").value="";
+  renderAdmin();
+ }catch(error){message.textContent="Не удалось добавить пакет: "+error.message}
+ finally{button.disabled=false}
+}
 async function saveStream(){
  const message=document.getElementById("adminMessage");
  if(!user||!isAdmin){message.textContent="Нет прав администратора.";return}
@@ -946,6 +992,7 @@ async function deleteStream(animeTitle,season,ep){
  }catch(error){document.getElementById("adminMessage").textContent="Не удалось удалить: "+error.message}
 }
 document.getElementById("adminSave").addEventListener("click",saveStream);
+document.getElementById("adminBulkSave").addEventListener("click",saveBulkEpisodes);
 document.getElementById("adminAddSeason").addEventListener("click",addAnimeSeason);
 document.getElementById("adminReload").addEventListener("click",loadStreams);
 
