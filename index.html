@@ -65,7 +65,7 @@ footer{text-align:center;color:#777184;padding:30px 10px;font-size:12px}
 
 #admin .admin-library-filters{display:grid;grid-template-columns:minmax(0,1fr) minmax(170px,220px);gap:10px;margin:14px 0 6px}#admin .admin-library-filters .field{margin:0}@media(max-width:650px){#admin .admin-library-filters{grid-template-columns:1fr}}
 
-#admin .admin-bunny-manager{border-top:1px solid #3a2d4d;margin-top:16px;padding-top:16px}#admin .admin-bunny-list{display:grid;gap:10px;margin-top:12px}#admin .admin-bunny-item{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid #392d50;border-radius:13px;background:#151122;min-width:0}#admin .admin-bunny-thumb{width:88px;height:58px;flex:0 0 88px;border-radius:8px;overflow:hidden;background:#241a34;display:grid;place-items:center}#admin .admin-bunny-thumb img{width:100%;height:100%;object-fit:cover}#admin .admin-bunny-info{display:grid;gap:4px;min-width:0;flex:1}#admin .admin-bunny-info strong{overflow-wrap:anywhere}#admin .admin-bunny-info code{font-size:10px;opacity:.7;overflow-wrap:anywhere}#admin .admin-bunny-status{font-size:12px;color:#fbbf24}#admin .admin-bunny-status.is-ready{color:#4ade80}#admin .admin-bunny-status.is-error{color:#f87171}#admin .admin-bunny-delete{flex:0 0 auto}@media(max-width:600px){#admin .admin-bunny-item{flex-wrap:wrap}#admin .admin-bunny-info{min-width:calc(100% - 110px)}#admin .admin-bunny-delete{margin-left:auto}}
+#admin .admin-bunny-manager{border-top:1px solid #3a2d4d;margin-top:16px;padding-top:16px}#admin .admin-bunny-toolbar{display:grid;grid-template-columns:minmax(0,1fr) 190px;gap:10px;margin:14px 0 8px}#admin .admin-bunny-toolbar .field{margin:0}#admin .admin-bunny-search{display:flex;gap:8px;min-width:0}#admin .admin-bunny-search .field{flex:1;min-width:0}#admin .admin-bunny-list{display:grid;gap:10px;margin-top:12px}#admin .admin-bunny-item{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid #392d50;border-radius:13px;background:#151122;min-width:0}#admin .admin-bunny-thumb{width:88px;height:58px;flex:0 0 88px;border-radius:8px;overflow:hidden;background:#241a34;display:grid;place-items:center}#admin .admin-bunny-thumb img{width:100%;height:100%;object-fit:cover}#admin .admin-bunny-info{display:grid;gap:4px;min-width:0;flex:1}#admin .admin-bunny-info strong{overflow-wrap:anywhere}#admin .admin-bunny-info code{font-size:10px;opacity:.7;overflow-wrap:anywhere}#admin .admin-bunny-status{font-size:12px;color:#fbbf24}#admin .admin-bunny-status.is-ready{color:#4ade80}#admin .admin-bunny-status.is-error{color:#f87171}#admin .admin-bunny-copy{flex:0 0 auto}#admin .admin-bunny-pagination{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:14px}#admin .admin-bunny-pagination button:disabled{opacity:.45;cursor:not-allowed}@media(max-width:650px){#admin .admin-bunny-toolbar{grid-template-columns:1fr}#admin .admin-bunny-search button{padding:10px}#admin .admin-bunny-item{flex-wrap:wrap}#admin .admin-bunny-info{min-width:calc(100% - 110px)}#admin .admin-bunny-copy{margin-left:auto}}
 </style>
 </head>
 <body>
@@ -162,8 +162,13 @@ footer{text-align:center;color:#777184;padding:30px 10px;font-size:12px}
   <details class="admin-advanced"><summary>Показать серии без видеоссылок</summary><div id="adminMissingEpisodes" class="muted">Проверяем каталог…</div></details>
   <div class="admin-bunny-manager">
    <div class="row" style="justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div><h4 style="margin:0">Видео в Bunny Stream</h4><p class="muted" style="margin:5px 0">Статусы обработки и управление загруженными файлами</p></div><button class="secondary" type="button" id="refreshBunnyVideos">↻ Обновить</button></div>
+   <div class="admin-bunny-toolbar">
+    <div class="admin-bunny-search"><input class="field" id="bunnyVideoSearch" type="search" maxlength="180" placeholder="Поиск видео по названию…" aria-label="Поиск видео в Bunny Stream"><button class="secondary" type="button" id="searchBunnyVideos">Найти</button></div>
+    <select class="field" id="bunnyVideoStatusFilter" aria-label="Фильтр статуса видео"><option value="all">Все статусы</option><option value="ready">Готово</option><option value="processing">В обработке</option><option value="error">Ошибка</option></select>
+   </div>
    <div id="bunnyLibrarySummary" class="review-meta">Нажми «Обновить», чтобы получить список видео из Bunny.</div>
    <div id="bunnyLibraryVideos" class="admin-bunny-list"></div>
+   <div class="admin-bunny-pagination"><button class="secondary" type="button" id="bunnyVideosPrev" disabled>← Назад</button><span id="bunnyVideosPage" class="review-meta">Страница 1</span><button class="secondary" type="button" id="bunnyVideosNext" disabled>Вперёд →</button></div>
    <p id="bunnyLibraryMessage" class="muted" role="status"></p>
   </div>
 
@@ -1050,37 +1055,53 @@ function bunnyStatusLabel(status){
 function formatVideoSize(bytes){
  const n=Number(bytes)||0;if(n<1024*1024)return (n/1024).toFixed(0)+" КБ";if(n<1024*1024*1024)return (n/1024/1024).toFixed(1)+" МБ";return (n/1024/1024/1024).toFixed(2)+" ГБ";
 }
-async function loadBunnyVideos(){
+let bunnyCurrentPage=1,bunnyTotalPages=1,bunnyLoadedItems=[];
+async function loadBunnyVideos(page=bunnyCurrentPage){
  const button=document.getElementById("refreshBunnyVideos"),list=document.getElementById("bunnyLibraryVideos"),summary=document.getElementById("bunnyLibrarySummary"),message=document.getElementById("bunnyLibraryMessage");
+ const searchInput=document.getElementById("bunnyVideoSearch"),prev=document.getElementById("bunnyVideosPrev"),next=document.getElementById("bunnyVideosNext"),pageLabel=document.getElementById("bunnyVideosPage");
  if(!user||!isAdmin){message.textContent="Требуются права администратора.";return}
+ const search=(searchInput?.value||"").trim();
  button.disabled=true;summary.textContent="Получаем список из Bunny Stream…";message.textContent="";
+ if(prev)prev.disabled=true;if(next)next.disabled=true;
  try{
-  const data=await bunnyAdminRequest("/api/videos?page=1");
+  const query=new URLSearchParams({page:String(Math.max(1,page))});
+  if(search)query.set("search",search);
+  const data=await bunnyAdminRequest("/api/videos?"+query.toString());
   const items=Array.isArray(data.items)?data.items:[];
-  summary.textContent="Видео в библиотеке: "+(data.totalItems??items.length)+" · На этой странице: "+items.length;
-  list.innerHTML=items.map(video=>{
-   const status=Number(video.status),ready=status===3||status===4;
-   const duration=Number(video.length)>0?Math.floor(video.length/60)+":"+String(Math.floor(video.length%60)).padStart(2,"0"):"—";
-   const size=formatVideoSize(video.storageSize);
-   const thumb=video.thumbnailFileName?"https://vz-1db794dd-dbb.b-cdn.net/"+encodeURIComponent(video.guid)+"/"+encodeURIComponent(video.thumbnailFileName):"";
-   return '<article class="admin-bunny-item"><div class="admin-bunny-thumb">'+(thumb?'<img src="'+thumb+'" alt="" loading="lazy">':'<span>▶</span>')+'</div><div class="admin-bunny-info"><strong>'+escapeHTML(video.title||"Без названия")+'</strong><span class="admin-bunny-status '+(ready?"is-ready":status===5?"is-error":"")+'">'+escapeHTML(bunnyStatusLabel(status))+'</span><span class="review-meta">'+duration+' · '+size+'</span><code>'+escapeHTML(video.guid||"")+'</code></div><button class="secondary admin-bunny-delete" type="button" data-bunny-delete="'+escapeHTML(video.guid||"")+'">Удалить</button></article>';
-  }).join("")||'<p class="muted">В библиотеке пока нет видео.</p>';
-  list.querySelectorAll("[data-bunny-delete]").forEach(btn=>btn.addEventListener("click",()=>deleteBunnyVideo(btn.dataset.bunnyDelete,btn)));
+  const totalItems=Number(data.totalItems)||items.length;
+  const perPage=Number(data.itemsPerPage)||100;
+  bunnyCurrentPage=Math.max(1,Number(data.currentPage)||page);
+  bunnyTotalPages=Math.max(1,Math.ceil(totalItems/perPage));
+  bunnyLoadedItems=items;
+  summary.textContent="Видео в библиотеке: "+totalItems+" · На странице: "+items.length;
+  if(pageLabel)pageLabel.textContent="Страница "+bunnyCurrentPage+" из "+bunnyTotalPages;
+  if(prev)prev.disabled=bunnyCurrentPage<=1;
+  if(next)next.disabled=bunnyCurrentPage>=bunnyTotalPages;
+  renderBunnyVideoItems();
  }catch(error){summary.textContent="Не удалось загрузить видеотеку.";message.textContent=error.message}
  finally{button.disabled=false}
 }
-async function deleteBunnyVideo(videoId,button){
- if(!videoId||!confirm("Удалить это видео из Bunny Stream навсегда? Файл, его обработанные версии и HLS-поток будут удалены. Это действие нельзя отменить."))return;
- const message=document.getElementById("bunnyLibraryMessage");button.disabled=true;message.textContent="Удаляем видео из Bunny Stream…";
- try{
-  await bunnyAdminRequest("/api/videos/"+encodeURIComponent(videoId),{method:"DELETE"});
-  const snapshot=await db.collection("streams").where("bunnyVideoId","==",videoId).get();
-  const docs=snapshot.docs;
-  for(let i=0;i<docs.length;i+=450){const batch=db.batch();docs.slice(i,i+450).forEach(doc=>batch.set(doc.ref,{url:"",deleted:true,bunnyVideoId:firebase.firestore.FieldValue.delete(),updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true}));await batch.commit()}
-  message.textContent="Видео удалено из Bunny. Связанные серии сняты с публикации в AniWave.";
-  await loadStreams();renderAdmin();await loadBunnyVideos();
- }catch(error){message.textContent="Не удалось завершить удаление: "+error.message+" Проверь список Bunny перед повторной попыткой."}
- finally{button.disabled=false}
+function renderBunnyVideoItems(){
+ const list=document.getElementById("bunnyLibraryVideos"),filter=document.getElementById("bunnyVideoStatusFilter")?.value||"all";
+ if(!list)return;
+ const visible=bunnyLoadedItems.filter(video=>{
+  const status=Number(video.status);
+  if(filter==="ready")return status===3||status===4;
+  if(filter==="error")return status===5;
+  if(filter==="processing")return status===0||status===1||status===2;
+  return true;
+ });
+ list.innerHTML=visible.map(video=>{
+  const status=Number(video.status),ready=status===3||status===4;
+  const duration=Number(video.length)>0?Math.floor(video.length/60)+":"+String(Math.floor(video.length%60)).padStart(2,"0"):"—";
+  const size=formatVideoSize(video.storageSize);
+  const thumb=video.thumbnailFileName?"https://vz-1db794dd-dbb.b-cdn.net/"+encodeURIComponent(video.guid)+"/"+encodeURIComponent(video.thumbnailFileName):"";
+  return '<article class="admin-bunny-item"><div class="admin-bunny-thumb">'+(thumb?'<img src="'+thumb+'" alt="" loading="lazy">':'<span>▶</span>')+'</div><div class="admin-bunny-info"><strong>'+escapeHTML(video.title||"Без названия")+'</strong><span class="admin-bunny-status '+(ready?"is-ready":status===5?"is-error":"")+'">'+escapeHTML(bunnyStatusLabel(status))+'</span><span class="review-meta">'+duration+' · '+size+'</span><code>'+escapeHTML(video.guid||"")+'</code></div><button class="secondary admin-bunny-copy" type="button" data-bunny-copy="'+escapeHTML(video.guid||"")+'">Копировать ID</button></article>';
+ }).join("")||'<p class="muted">Нет видео для выбранного фильтра на этой странице.</p>';
+ list.querySelectorAll("[data-bunny-copy]").forEach(btn=>btn.addEventListener("click",async()=>{
+  try{await navigator.clipboard.writeText(btn.dataset.bunnyCopy);document.getElementById("bunnyLibraryMessage").textContent="ID видео скопирован."}
+  catch{document.getElementById("bunnyLibraryMessage").textContent="Не удалось скопировать автоматически. Выдели ID в карточке видео."}
+ }));
 }
 async function uploadVideoToBunny(){
   const file=document.getElementById("bunnyVideoFile").files[0],button=document.getElementById("bunnyUploadButton"),message=document.getElementById("bunnyUploadMessage"),status=document.getElementById("bunnyUploadStatus"),percent=document.getElementById("bunnyUploadPercent"),bar=document.getElementById("bunnyUploadProgress");
@@ -1245,7 +1266,12 @@ document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()
 
 document.getElementById("adminEpisodeSearch")?.addEventListener("input",filterAdminEpisodes);
 document.getElementById("adminEpisodeFilter")?.addEventListener("change",filterAdminEpisodes);
-document.getElementById("refreshBunnyVideos")?.addEventListener("click",loadBunnyVideos);
+document.getElementById("refreshBunnyVideos")?.addEventListener("click",()=>loadBunnyVideos(1));
+document.getElementById("searchBunnyVideos")?.addEventListener("click",()=>loadBunnyVideos(1));
+document.getElementById("bunnyVideoSearch")?.addEventListener("keydown",event=>{if(event.key==="Enter"){event.preventDefault();loadBunnyVideos(1)}});
+document.getElementById("bunnyVideoStatusFilter")?.addEventListener("change",renderBunnyVideoItems);
+document.getElementById("bunnyVideosPrev")?.addEventListener("click",()=>loadBunnyVideos(bunnyCurrentPage-1));
+document.getElementById("bunnyVideosNext")?.addEventListener("click",()=>loadBunnyVideos(bunnyCurrentPage+1));
 document.getElementById("createAnime").addEventListener("click",addAnimeFromAdmin);
 document.getElementById("saveCloudinaryConfig").addEventListener("click",saveCloudinaryConfig);
 document.getElementById("existingPosterFile").addEventListener("change",()=>{const f=document.getElementById("existingPosterFile").files[0],p=document.getElementById("existingPosterPreview");if(!f){p.classList.add("hidden");return}p.src=URL.createObjectURL(f);p.classList.remove("hidden")});
