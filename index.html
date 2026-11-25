@@ -258,8 +258,19 @@ async function loadAnimeCatalog(){
   const snapshot=await db.collection("animeCatalog").get();
   snapshot.forEach(doc=>{
    const data=doc.data();
-   if(data.name&&!anime.some(item=>item.name===data.name)){
-    anime.push({name:data.name,genre:data.genre||"Другое",year:String(data.year||""),rating:String(data.rating||"0.0"),emoji:data.emoji||"🎬",img:data.img||"",desc:data.desc||"",custom:true});
+   if(data.name){
+    const existing=anime.find(item=>item.name===data.name);
+    if(existing){
+     if(data.img)existing.img=data.img;
+     if(data.genre)existing.genre=data.genre;
+     if(data.year)existing.year=String(data.year);
+     if(data.rating)existing.rating=String(data.rating);
+     if(data.emoji)existing.emoji=data.emoji;
+     if(data.desc)existing.desc=data.desc;
+     existing.custom=true;
+    }else{
+     anime.push({name:data.name,genre:data.genre||"Другое",year:String(data.year||""),rating:String(data.rating||"0.0"),emoji:data.emoji||"🎬",img:data.img||"",desc:data.desc||"",custom:true});
+    }
    }
   });
   renderHome();renderCatalog();
