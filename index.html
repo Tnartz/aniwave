@@ -1118,13 +1118,45 @@ function renderBunnyVideoItems(){
   const relation=link?"Привязано: "+link.animeTitle+" · S"+link.season+"E"+link.episode:"Не привязано к серии";
   const animeOptions=anime.map(item=>'<option value="'+escapeHTML(item.name)+'"'+(link&&link.animeTitle===item.name?" selected":"")+'>'+escapeHTML(item.name)+'</option>').join("");
   const selectedSeason=link?link.season:1,selectedEpisode=link?link.episode:1;
-  return '<article class="admin-bunny-item"><div class="admin-bunny-thumb">'+(thumb?'<img src="'+thumb+'" alt="" loading="lazy">':'<span>▶</span>')+'</div><div class="admin-bunny-info"><strong>'+escapeHTML(video.title||"Без названия")+'</strong><span class="admin-bunny-status '+(ready?"is-ready":status===5?"is-error":"")+'">'+escapeHTML(bunnyStatusLabel(status))+'</span><span class="review-meta">'+duration+' · '+size+'</span><span class="review-meta">'+escapeHTML(relation)+'</span><code>'+escapeHTML(video.guid||"")+'</code><div class="admin-bunny-bind"><select class="field" data-bunny-anime="'+escapeHTML(video.guid||"")+'" aria-label="Аниме для привязки">'+animeOptions+'</select><input class="field" type="number" min="1" max="99" value="'+selectedSeason+'" data-bunny-season="'+escapeHTML(video.guid||"")+'" aria-label="Сезон"><input class="field" type="number" min="1" max="999" value="'+selectedEpisode+'" data-bunny-episode="'+escapeHTML(video.guid||"")+'" aria-label="Серия"><button class="secondary" type="button" data-bunny-bind="'+escapeHTML(video.guid||"")+'">Сохранить привязку</button></div></div><button class="secondary admin-bunny-copy" type="button" data-bunny-copy="'+escapeHTML(video.guid||"")+'">Копировать ID</button></article>';
+  return '<article class="admin-bunny-item"><div class="admin-bunny-thumb">'+(thumb?'<img src="'+thumb+'" alt="" loading="lazy">':'<span>▶</span>')+'</div><div class="admin-bunny-info"><strong>'+escapeHTML(video.title||"Без названия")+'</strong><span class="admin-bunny-status '+(ready?"is-ready":status===5?"is-error":"")+'">'+escapeHTML(bunnyStatusLabel(status))+'</span><span class="review-meta">'+duration+' · '+size+'</span><span class="review-meta">'+escapeHTML(relation)+'</span><code>'+escapeHTML(video.guid||"")+'</code><div class="admin-bunny-bind"><select class="field" data-bunny-anime="'+escapeHTML(video.guid||"")+'" aria-label="Аниме для привязки">'+animeOptions+'</select><input class="field" type="number" min="1" max="99" value="'+selectedSeason+'" data-bunny-season="'+escapeHTML(video.guid||"")+'" aria-label="Сезон"><input class="field" type="number" min="1" max="999" value="'+selectedEpisode+'" data-bunny-episode="'+escapeHTML(video.guid||"")+'" aria-label="Серия"><button class="secondary" type="button" data-bunny-bind="'+escapeHTML(video.guid||"")+'">Сохранить привязку</button></div></div><button class="secondary admin-bunny-copy" type="button" data-bunny-copy="'+escapeHTML(video.guid||"")+'">Копировать ID</button>' +(link?'<button class="secondary" type="button" data-bunny-unbind="'+escapeHTML(video.guid||"")+'">Отвязать от серии</button>':'')+'</article>';
  }).join("")||'<p class="muted">Нет видео для выбранного фильтра на этой странице.</p>';
  list.querySelectorAll("[data-bunny-bind]").forEach(btn=>btn.addEventListener("click",()=>bindBunnyVideo(btn.dataset.bunnyBind)));
+ list.querySelectorAll("[data-bunny-unbind]").forEach(btn=>btn.addEventListener("click",()=>unbindBunnyVideo(btn.dataset.bunnyUnbind)));
  list.querySelectorAll("[data-bunny-copy]").forEach(btn=>btn.addEventListener("click",async()=>{
   try{await navigator.clipboard.writeText(btn.dataset.bunnyCopy);document.getElementById("bunnyLibraryMessage").textContent="ID видео скопирован."}
   catch{document.getElementById("bunnyLibraryMessage").textContent="Не удалось скопировать автоматически. Выдели ID в карточке видео."}
  }));
+}
+async function unbindBunnyVideo(videoId){
+ const message=document.getElementById("bunnyLibraryMessage");
+ if(!user||!isAdmin){message.textContent="Требуются права администратора.";return}
+ const link=bunnyEpisodeLinks[videoId];
+ if(!link){message.textContent="Для этого видео не найдена привязка.";return}
+ const approved=confirm("Отвязать видео от серии «"+link.animeTitle+"», сезон "+link.season+", серия "+link.episode+"?\n\nСамо видео останется в Bunny Stream и не будет удалено.");
+ if(!approved)return;
+ const button=document.querySelector('[data-bunny-unbind="'+videoId+'"]');
+ if(button){button.disabled=true;button.textContent="Отвязываем…"}
+ try{
+  const linked=await db.collection("streams").where("bunnyVideoId","==",videoId).get();
+  if(linked.empty){message.textContent="Привязка уже отсутствует. Обнови видеотеку.";await loadBunnyVideos(bunnyCurrentPage);return}
+  const batch=db.batch();
+  linked.forEach(doc=>batch.set(doc.ref,{
+   bunnyVideoId:firebase.firestore.FieldValue.delete(),
+   bunnyStatus:firebase.firestore.FieldValue.delete(),
+   url:firebase.firestore.FieldValue.delete(),
+   updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+  },{merge:true}));
+  await batch.commit();
+  linked.forEach(doc=>{
+   const data=doc.data(),animeTitle=data.animeTitle,season=Number(data.season)||1,episode=Number(data.episode)||1;
+   if(EPISODE_CATALOG[animeTitle]?.[season])delete EPISODE_CATALOG[animeTitle][season][episode];
+   if(season===1&&HLS_SOURCES[animeTitle])delete HLS_SOURCES[animeTitle][episode];
+  });
+  message.textContent="Видео отвязано от серии. Сам ролик сохранён в Bunny Stream.";
+  await loadBunnyVideos(bunnyCurrentPage);
+  renderAdmin();
+ }catch(error){message.textContent="Не удалось отвязать видео: "+error.message}
+ finally{if(button){button.disabled=false;button.textContent="Отвязать от серии"}}
 }
 async function bindBunnyVideo(videoId){
  const message=document.getElementById("bunnyLibraryMessage");
