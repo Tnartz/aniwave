@@ -1667,8 +1667,10 @@ async function sendAniWaveAI(audit=false){
  status.textContent="AniWave Assistant думает…";
  try{
   const token=await user.getIdToken(true);
-  const history=aniWaveAIHistory.slice(-8).map(item=>(item.role==="assistant"?"Помощник: ":"Администратор: ")+item.text).join("\n\n");
-  const context=(audit||/каталог|аниме|дубли|постер|описан|жанр|метадан|firebase|firestore|баз[аеыу]|серии|источник|видеоверси/i.test(message))?await getAniWaveCatalogContext():"";
+  // Ограничиваем историю и контекст, чтобы не превышать лимит тела запроса Cloudflare Worker.
+  const history=aniWaveAIHistory.slice(-4).map(item=>(item.role==="assistant"?"Помощник: ":"Администратор: ")+String(item.text||"").slice(-700)).join("\n\n");
+  const rawContext=(audit||/каталог|аниме|дубли|постер|описан|жанр|метадан|firebase|firestore|баз[аеыу]|серии|источник|видеоверси/i.test(message))?await getAniWaveCatalogContext():"";
+  const context=rawContext.slice(0,5000);
   if(audit){const report=buildAniWaveCatalogAudit();status.textContent="Проверено тайтлов: "+report.totalAnime+". Найдено проблемных полей: "+report.totalIssueFlags+". Передаю отчёт ИИ…";}
   const response=await fetch("https://aniwave-agent-staging.ilya-shashkin-95.workers.dev/api/assistant",{
    method:"POST",
