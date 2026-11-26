@@ -7,11 +7,15 @@ import {
   initializeTestEnvironment,
 } from "@firebase/rules-unit-testing";
 import {
+  collection,
   doc,
   getDoc,
+  getDocs,
+  query,
   serverTimestamp,
   setDoc,
   updateDoc,
+  where,
 } from "firebase/firestore";
 
 const projectId = "aniwave-firestore-rules-tests";
@@ -120,4 +124,50 @@ test("legacy watch progress without optional server timestamp remains usable by 
   await assertFails(getDoc(
     doc(env.authenticatedContext("user-b").firestore(), "watchProgress/old-progress"),
   ));
+});
+
+test("public favorites and watchlists queries work only when the profile visibility flags are enabled", async () => {
+  await env.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    await setDoc(doc(db, "userProfiles/user-public"), {
+      userId: "user-public",
+      nickname: "Public user",
+      avatar: "🌙",
+      publicFavorites: true,
+      publicWatched: true,
+    });
+    await setDoc(doc(db, "favorites/public-favorite"), {
+      userId: "user-public",
+      animeTitle: "Public anime",
+      createdAt: new Date(),
+    });
+    await setDoc(doc(db, "watchlists/public-watchlist"), {
+      userId: "user-public",
+      animeTitle: "Public anime",
+      status: "completed",
+    });
+  });
+
+  const guestDb = env.unauthenticatedContext().firestore();
+  const publicFavoritesQuery = query(
+    collection(guestDb, "favorites"),
+    where("userId", "==", "user-public"),
+  );
+  const publicWatchlistsQuery = query(
+    collection(guestDb, "watchlists"),
+    where("userId", "==", "user-public"),
+  );
+  await assertSucceeds(getDocs(publicFavoritesQuery));
+  await assertSucceeds(getDocs(publicWatchlistsQuery));
+
+  const privateFavoritesQuery = query(
+    collection(guestDb, "favorites"),
+    where("userId", "==", "user-a"),
+  );
+  const privateWatchlistsQuery = query(
+    collection(guestDb, "watchlists"),
+    where("userId", "==", "user-a"),
+  );
+  await assertFails(getDocs(privateFavoritesQuery));
+  await assertFails(getDocs(privateWatchlistsQuery));
 });
