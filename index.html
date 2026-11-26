@@ -370,6 +370,27 @@ async function handlePosterError(img,index){
 }
 function card(a){const idx=anime.indexOf(a),isFav=favorites.includes(a.name),watchStatus=watchlistEntries.find(item=>item.animeTitle===a.name)?.status||"";const poster='<img src="'+escapeHTML(a.img||"data:image/png;base64,AAAA")+'" alt="Постер: '+escapeHTML(a.name)+'" loading="lazy" onerror="handlePosterError(this,'+idx+')">';const statusOptions='<option value="">Добавить в мой список…</option>'+Object.entries(WATCHLIST_STATUSES).map(([value,label])=>'<option value="'+value+'" '+(watchStatus===value?'selected':'')+'>'+label+'</option>').join("");return '<article class="anime-card" onclick="openAnimeByIndex('+idx+')"><div class="poster">'+poster+'<div class="poster-fallback" style="display:'+(a.img?'none':'grid')+'">'+escapeHTML(a.emoji||"🎬")+'<small>'+escapeHTML(a.name)+'</small></div><span class="poster-quality">HD</span><span class="poster-score">★ '+escapeHTML(a.rating)+'</span><button type="button" class="card-favorite '+(isFav?'active':'')+'" aria-label="'+(isFav?'Убрать из избранного':'Добавить в избранное')+'" aria-pressed="'+isFav+'" onclick="event.stopPropagation();quickToggleFavorite('+idx+')">'+(isFav?'♥':'♡')+'</button></div><div class="card-info"><strong>'+escapeHTML(a.name)+'</strong><span class="meta">'+escapeHTML(a.year)+' · '+escapeHTML(a.genre)+'</span><select class="card-watch-status" aria-label="Статус просмотра: '+escapeHTML(a.name)+'" onclick="event.stopPropagation()" onchange="quickSetWatchStatus('+idx+',this.value)" onkeydown="event.stopPropagation()">'+statusOptions+'</select></div></article>'}
 function normalizeCatalogSearch(value){return String(value??"").toLocaleLowerCase("ru").replace(/ё/g,"е").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-zа-я0-9]+/g," ").trim()}
+function dedupeAnimeCatalog(){
+ const kept=[],seenIds=new Set();
+ for(const item of anime){
+  const id=item.jikanId||item.mal_id||null;
+  if(id&&seenIds.has(String(id)))continue;
+  const aliases=[item.name,item.altTitle,item.originalName,item.ruName].map(normalizeCatalogSearch).filter(Boolean);
+  const duplicate=kept.some(existing=>{
+   const existingId=existing.jikanId||existing.mal_id||null;
+   if(id&&existingId&&String(id)===String(existingId))return true;
+   const other=[existing.name,existing.altTitle,existing.originalName,existing.ruName].map(normalizeCatalogSearch).filter(Boolean);
+   const sameTitle=aliases.some(name=>other.includes(name));
+   const sameYear=!item.year||!existing.year||String(item.year)===String(existing.year);
+   return sameTitle&&sameYear;
+  });
+  if(duplicate)continue;
+  kept.push(item);
+  if(id)seenIds.add(String(id));
+ }
+ if(kept.length!==anime.length)anime.splice(0,anime.length,...kept);
+ return anime.length;
+}
 function catalogSearchText(item){const values=[item.name,item.altTitle,item.genre,item.genres,item.desc,item.year,item.studio,item.country,item.source,item.type,item.status];return normalizeCatalogSearch(values.flatMap(value=>Array.isArray(value)?value:[value]).filter(Boolean).join(" "))}
 function renderCatalog(){const q=normalizeCatalogSearch(document.getElementById("search")?.value||""),tokens=q.split(/\s+/).filter(Boolean),year=document.getElementById("catalogYear")?.value||"",minRating=Number(document.getElementById("catalogMinRating")?.value||0),sort=document.getElementById("catalogSort")?.value||"rating",yearSelect=document.getElementById("catalogYear");if(yearSelect&&yearSelect.options.length<=1){[...new Set(anime.map(a=>String(a.year||"")).filter(Boolean))].sort((a,b)=>Number(b)-Number(a)).forEach(y=>{const option=document.createElement("option");option.value=y;option.textContent=y;yearSelect.appendChild(option)})}let items=anime.filter(a=>(currentFilter==="Все"||a.genre===currentFilter||Array.isArray(a.genres)&&a.genres.includes(currentFilter))&&(!tokens.length||tokens.every(token=>catalogSearchText(a).includes(token)))&&(!year||String(a.year)===year)&&Number(a.rating||0)>=minRating);items.sort((a,b)=>sort==="year-desc"?Number(b.year)-Number(a.year):sort==="year-asc"?Number(a.year)-Number(b.year):sort==="name"?a.name.localeCompare(b.name,"ru"):Number(b.rating)-Number(a.rating));const count=document.getElementById("catalogCount");if(count)count.textContent="Найдено: "+items.length+" из "+anime.length;document.getElementById("catalogGrid").innerHTML=items.map(card).join("")||'<p class="muted">Ничего не найдено. Попробуй изменить фильтры.</p>'}
 let catalogSuggestionItems=[];
@@ -1972,6 +1993,7 @@ function mapJikanAnime(item){
  };
 }
 function mergeJikanAnime(items){
+ dedupeAnimeCatalog();
  let added=0;
  for(const raw of items||[]){
   if(!raw?.mal_id||jikanKnownIds.has(raw.mal_id))continue;
@@ -1980,6 +2002,7 @@ function mergeJikanAnime(items){
   if(duplicate){jikanKnownIds.add(raw.mal_id);continue}
   anime.push(mapped);jikanKnownIds.add(raw.mal_id);added++;
  }
+ dedupeAnimeCatalog();
  return added;
 }
 // Подтягиваем русские названия и описания из русскоязычной базы Shikimori.
@@ -2051,6 +2074,7 @@ async function loadJikanCatalog(nextPage=1){
 }
 document.getElementById("loadJikanCatalog")?.addEventListener("click",()=>loadJikanCatalog(jikanCatalogPage+1));
 
+dedupeAnimeCatalog();
 loadCloudinaryConfig();
 renderHome();renderCatalog();renderWatch();initAuth();
 loadJikanCatalog(1);
