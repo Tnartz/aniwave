@@ -2130,7 +2130,10 @@ async function loadJikanCatalog(nextPage=1){
    payload=await response.json();
    if(nextPage===1){try{localStorage.setItem(JIKAN_CACHE_KEY,JSON.stringify({savedAt:Date.now(),items:payload.data||[]}))}catch(_e){}}
   }
-  const beforeIds=new Set(anime.map(item=>item.jikanId).filter(Boolean));\n  const added=mergeJikanAnime(payload.data||[]);\n  const imported=anime.filter(item=>item.jikanId&&!beforeIds.has(item.jikanId));\n  if(imported.length){if(status)status.textContent="Добавлено "+added+" аниме. Ищем русские названия и описания…";await enrichAnimeInRussian(imported)}
+  const beforeIds=new Set(anime.map(item=>item.jikanId).filter(Boolean));
+  const added=mergeJikanAnime(payload.data||[]);
+  const imported=anime.filter(item=>item.jikanId&&!beforeIds.has(item.jikanId));
+  if(imported.length){if(status)status.textContent="Добавлено "+added+" аниме. Ищем русские названия и описания…";await enrichAnimeInRussian(imported)}
   jikanCatalogPage=nextPage;
   renderHome();renderCatalog();
   const hasMore=Boolean(payload.pagination?.has_next_page);
