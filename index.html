@@ -1670,7 +1670,7 @@ async function sendAniWaveAI(audit=false){
   const history=aniWaveAIHistory.slice(-8).map(item=>(item.role==="assistant"?"Помощник: ":"Администратор: ")+item.text).join("\n\n");
   const context=(audit||/каталог|аниме|дубли|постер|описан|жанр|метадан|firebase|firestore|баз[аеыу]|серии|источник|видеоверси/i.test(message))?await getAniWaveCatalogContext():"";
   if(audit){const report=buildAniWaveCatalogAudit();status.textContent="Проверено тайтлов: "+report.totalAnime+". Найдено проблемных полей: "+report.totalIssueFlags+". Передаю отчёт ИИ…";}
-  const response=await fetch("https://aniwave-ai.ilya-shashkin-95.workers.dev/api/assistant",{
+  const response=await fetch("https://aniwave-agent-staging.ilya-shashkin-95.workers.dev/api/assistant",{
    method:"POST",
    headers:{"Authorization":"Bearer "+token,"Content-Type":"application/json"},
    body:JSON.stringify({message:history,context})
@@ -1681,7 +1681,7 @@ async function sendAniWaveAI(audit=false){
   aniWaveAIHistory.push({role:"assistant",text:data.answer});
   if(aniWaveAIHistory.length>12)aniWaveAIHistory=aniWaveAIHistory.slice(-12);
   renderAniWaveAIChat();
-  status.textContent="Ответ получен. Изменения сайта не выполнялись.";
+  status.textContent="Ответ получен. Проверь отчёт агента и созданные им Pull Request.";
  }catch(error){
   aniWaveAIHistory.push({role:"assistant",text:"Не удалось получить ответ: "+error.message});
   renderAniWaveAIChat();
