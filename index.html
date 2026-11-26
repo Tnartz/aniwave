@@ -178,6 +178,11 @@ footer{text-align:center;color:#777184;padding:30px 10px;font-size:12px}
  <div class="panel" style="max-width:760px"><div class="profile-identity"><div class="profile-avatar" id="publicProfileAvatar">🌙</div><div><h3 id="publicProfileName">Загрузка профиля…</h3><p class="muted" id="publicProfileStatus"> </p></div></div><p class="muted" id="publicProfileNote"> </p><section id="publicProfileStats" class="profile-stats hidden" style="grid-template-columns:repeat(3,minmax(0,1fr));margin-top:18px"><div class="profile-stat hidden" id="publicProfileWatchedStat"><strong id="publicProfileWatchedCount">0</strong><span>Просмотрено</span></div><div class="profile-stat hidden" id="publicProfileFavoritesStat"><strong id="publicProfileFavoritesCount">0</strong><span>В избранном</span></div><div class="profile-stat hidden" id="publicProfileReviewsStat"><strong id="publicProfileReviewsCount">0</strong><span>Отзывов</span></div></section><section id="publicProfileReviews" class="hidden" style="margin-top:18px"><h3>✍️ Отзывы и оценки</h3><div id="publicProfileReviewsList" class="profile-recent-list"></div></section><section id="publicProfileFavorites" class="hidden" style="margin-top:18px"><h3>💜 Избранное</h3><div id="publicProfileFavoritesList" class="profile-recent-list"></div></section><button type="button" id="publicProfileMessage" class="hidden">✉️ Написать сообщение</button></div>
 </section>
 <section id="admin" class="page hidden">
+ <div class="admin-tabs" style="display:flex;gap:10px;flex-wrap:wrap;margin:0 0 18px">
+  <button type="button" id="adminMainTabButton" onclick="switchAdminTab('main')">Панель управления</button>
+  <button type="button" class="secondary" id="adminAssistantTabButton" onclick="switchAdminTab('assistant')">✦ AniWave Assistant</button>
+ </div>
+ <div id="adminMainTab">
  <div class="section-head"><div><h2>Админ-панель</h2><span class="meta">Управление AniWave в одном месте</span></div></div>
  <div class="admin-shortcuts">
   <a href="#admin-upload">⬆ Загрузить серию</a><a href="#admin-library">▣ Видеотека</a><a href="#admin-catalog">＋ Каталог</a><a href="#admin-tools">⚙ Дополнительно</a>
@@ -243,6 +248,12 @@ footer{text-align:center;color:#777184;padding:30px 10px;font-size:12px}
  </div>
  <div class="panel" id="admin-tools">
   <h3>Дополнительные инструменты</h3>
+  <details class="admin-advanced"><summary>Пакетное добавление серий по HLS-ссылкам</summary><p class="muted">Одна серия на строку: номер | название | HTTPS-ссылка .m3u8. Уже существующие серии будут пропущены.</p><textarea class="field" id="adminBulkEpisodes" rows="5" placeholder="1 | Начало охоты | https://example.com/episode1.m3u8&#10;2 | Новый противник | https://example.com/episode2.m3u8"></textarea><div class="row"><button type="button" id="adminBulkSave">Добавить серии списком</button></div><p class="muted" id="adminBulkMessage" role="status"></p><div id="adminBulkResults" class="muted"></div></details>
+  <details class="admin-advanced"><summary>Пакетная загрузка постеров</summary><p class="muted">Названия файлов должны совпадать с названиями аниме.</p><input class="field" id="batchPosterFiles" type="file" accept="image/jpeg,image/png,image/webp" multiple><div class="row"><button type="button" id="batchPosterUpload">Загрузить выбранные постеры</button></div><p class="muted" id="batchPosterMessage" role="status"></p><div id="batchPosterResults" class="muted"></div></details>
+ </div>
+ </div>
+ <div id="adminAssistantTab" class="hidden">
+  <div class="section-head"><div><h2>✦ AniWave Assistant</h2><span class="meta">ИИ-помощник администратора AniWave</span></div></div>
   <div class="admin-advanced" style="margin:14px 0;padding:16px;border:1px solid var(--border);border-radius:14px">
    <div class="admin-panel-heading"><div><span class="eyebrow">ИИ-ПОМОЩНИК</span><h3>AniWave Assistant</h3><p class="muted">Помощник администратора. Анализирует каталог и предлагает улучшения, но не изменяет данные сайта.</p></div><span class="admin-step">AI</span></div>
    <div id="aniWaveAIChat" aria-live="polite" style="display:grid;gap:10px;max-height:320px;overflow:auto;margin:12px 0">
@@ -256,8 +267,7 @@ footer{text-align:center;color:#777184;padding:30px 10px;font-size:12px}
    </div>
    <p class="muted" id="aniWaveAIStatus" role="status">Готов к работе. Доступ только для администратора.</p>
   </div>
-  <details class="admin-advanced"><summary>Пакетное добавление серий по HLS-ссылкам</summary><p class="muted">Одна серия на строку: номер | название | HTTPS-ссылка .m3u8. Уже существующие серии будут пропущены.</p><textarea class="field" id="adminBulkEpisodes" rows="5" placeholder="1 | Начало охоты | https://example.com/episode1.m3u8&#10;2 | Новый противник | https://example.com/episode2.m3u8"></textarea><div class="row"><button type="button" id="adminBulkSave">Добавить серии списком</button></div><p class="muted" id="adminBulkMessage" role="status"></p><div id="adminBulkResults" class="muted"></div></details>
-  <details class="admin-advanced"><summary>Пакетная загрузка постеров</summary><p class="muted">Названия файлов должны совпадать с названиями аниме.</p><input class="field" id="batchPosterFiles" type="file" accept="image/jpeg,image/png,image/webp" multiple><div class="row"><button type="button" id="batchPosterUpload">Загрузить выбранные постеры</button></div><p class="muted" id="batchPosterMessage" role="status"></p><div id="batchPosterResults" class="muted"></div></details>
+  <button type="button" class="secondary" onclick="switchAdminTab('main')">← Вернуться к панели управления</button>
  </div>
 </section>
 <section id="premium" class="page hidden">
@@ -948,6 +958,15 @@ async function addAnimeFromAdmin(){
   renderHome();renderCatalog();renderAdminAnimeList();renderAdmin();
  }catch(error){message.textContent="Не удалось добавить: "+error.message}
 }
+function switchAdminTab(tab){
+ if(!user||!isAdmin){alert("Доступ разрешён только администраторам.");return}
+ const assistant=tab==="assistant";
+ document.getElementById("adminMainTab")?.classList.toggle("hidden",assistant);
+ document.getElementById("adminAssistantTab")?.classList.toggle("hidden",!assistant);
+ document.getElementById("adminMainTabButton")?.classList.toggle("secondary",assistant);
+ document.getElementById("adminAssistantTabButton")?.classList.toggle("secondary",!assistant);
+ window.scrollTo({top:0,behavior:"smooth"});
+}
 function renderAdminAnimeList(){
  const el=document.getElementById("adminAnimeList");if(!el)return;
  const custom=anime.filter(item=>item.custom===true);
@@ -1147,6 +1166,7 @@ function filterAdminEpisodes(){
  const count=document.getElementById("adminEpisodeCount");if(count)count.textContent="Показано "+shown+" из "+rows.length+" серий";
 }
 function renderAdmin(){
+ switchAdminTab("main");
  if(!isAdmin){go("profile");document.getElementById("loginMessage").textContent="Для этой страницы нужны права администратора.";return}
  renderAdminAnimeList();
  renderAdminLibraryStats();
