@@ -243,6 +243,19 @@ footer{text-align:center;color:#777184;padding:30px 10px;font-size:12px}
  </div>
  <div class="panel" id="admin-tools">
   <h3>Дополнительные инструменты</h3>
+  <div class="admin-advanced" style="margin:14px 0;padding:16px;border:1px solid var(--border);border-radius:14px">
+   <div class="admin-panel-heading"><div><span class="eyebrow">ИИ-ПОМОЩНИК</span><h3>AniWave Assistant</h3><p class="muted">Помощник администратора. Анализирует каталог и предлагает улучшения, но не изменяет данные сайта.</p></div><span class="admin-step">AI</span></div>
+   <div id="aniWaveAIChat" aria-live="polite" style="display:grid;gap:10px;max-height:320px;overflow:auto;margin:12px 0">
+    <p class="muted">Привет! Я AniWave Assistant. Могу проверить каталог на возможные дубли, пустые описания и проблемы метаданных.</p>
+   </div>
+   <label for="aniWaveAIInput">Сообщение помощнику</label>
+   <textarea class="field" id="aniWaveAIInput" rows="3" maxlength="8000" placeholder="Например: Проверь каталог и предложи, что стоит исправить."></textarea>
+   <div class="row" style="margin-top:10px;flex-wrap:wrap">
+    <button type="button" id="aniWaveAISend">Отправить</button>
+    <button type="button" class="secondary" id="aniWaveAIAudit">🔎 Проверить каталог</button>
+   </div>
+   <p class="muted" id="aniWaveAIStatus" role="status">Готов к работе. Доступ только для администратора.</p>
+  </div>
   <details class="admin-advanced"><summary>Пакетное добавление серий по HLS-ссылкам</summary><p class="muted">Одна серия на строку: номер | название | HTTPS-ссылка .m3u8. Уже существующие серии будут пропущены.</p><textarea class="field" id="adminBulkEpisodes" rows="5" placeholder="1 | Начало охоты | https://example.com/episode1.m3u8&#10;2 | Новый противник | https://example.com/episode2.m3u8"></textarea><div class="row"><button type="button" id="adminBulkSave">Добавить серии списком</button></div><p class="muted" id="adminBulkMessage" role="status"></p><div id="adminBulkResults" class="muted"></div></details>
   <details class="admin-advanced"><summary>Пакетная загрузка постеров</summary><p class="muted">Названия файлов должны совпадать с названиями аниме.</p><input class="field" id="batchPosterFiles" type="file" accept="image/jpeg,image/png,image/webp" multiple><div class="row"><button type="button" id="batchPosterUpload">Загрузить выбранные постеры</button></div><p class="muted" id="batchPosterMessage" role="status"></p><div id="batchPosterResults" class="muted"></div></details>
  </div>
@@ -1490,6 +1503,62 @@ async function saveBulkEpisodes(){
  }catch(error){message.textContent="Не удалось добавить пакет: "+error.message}
  finally{button.disabled=false}
 }
+let aniWaveAIHistory=[];
+function renderAniWaveAIChat(){
+ const box=document.getElementById("aniWaveAIChat");
+ if(!box)return;
+ box.innerHTML=aniWaveAIHistory.map(item=>'<div style="padding:10px 12px;border-radius:12px;background:'+(item.role==="assistant"?"var(--panel,rgba(127,127,127,.10))":"rgba(120,120,120,.12)")+'"><strong>'+(item.role==="assistant"?"AniWave Assistant":"Ты")+'</strong><div style="white-space:pre-wrap;margin-top:5px">'+escapeHTML(item.text)+'</div></div>').join("");
+ box.scrollTop=box.scrollHeight;
+}
+function getAniWaveCatalogContext(){
+ const items=(Array.isArray(anime)?anime:[]).slice(0,100).map(item=>({
+  name:item.name||"",
+  genre:item.genre||"",
+  year:item.year||"",
+  rating:item.rating||"",
+  description:(item.desc||item.description||"").slice(0,350),
+  hasPoster:Boolean(item.img)
+ }));
+ return JSON.stringify({source:"Текущий каталог, доступный в интерфейсе AniWave",count:items.length,items}).slice(0,12000);
+}
+async function sendAniWaveAI(audit=false){
+ const input=document.getElementById("aniWaveAIInput");
+ const status=document.getElementById("aniWaveAIStatus");
+ const send=document.getElementById("aniWaveAISend");
+ const auditButton=document.getElementById("aniWaveAIAudit");
+ if(!user||!isAdmin){status.textContent="Требуются права администратора.";return}
+ const message=audit?"Проведи аудит переданного каталога. Найди вероятные дубли, пустые описания, отсутствующие постеры и неполные метаданные. Сгруппируй проблемы по важности и предложи безопасные исправления. Ничего не изменяй.":(input.value||"").trim();
+ if(!message){status.textContent="Напиши сообщение помощнику.";return}
+ if(message.length>8000){status.textContent="Сообщение слишком длинное.";return}
+ aniWaveAIHistory.push({role:"user",text:message});
+ renderAniWaveAIChat();
+ input.value="";
+ send.disabled=true;auditButton.disabled=true;
+ status.textContent="AniWave Assistant думает…";
+ try{
+  const token=await user.getIdToken(true);
+  const history=aniWaveAIHistory.slice(-8).map(item=>(item.role==="assistant"?"Помощник: ":"Администратор: ")+item.text).join("\n\n");
+  const context=(audit||/каталог|аниме|дубли|постер|описан/i.test(message))?getAniWaveCatalogContext():"";
+  const response=await fetch("https://aniwave-ai.ilya-shashkin-95.workers.dev/api/assistant",{
+   method:"POST",
+   headers:{"Authorization":"Bearer "+token,"Content-Type":"application/json"},
+   body:JSON.stringify({message:history,context})
+  });
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok)throw new Error(data.error||"Ошибка AniWave AI (HTTP "+response.status+").");
+  if(!data.answer)throw new Error("ИИ не вернул ответ.");
+  aniWaveAIHistory.push({role:"assistant",text:data.answer});
+  if(aniWaveAIHistory.length>12)aniWaveAIHistory=aniWaveAIHistory.slice(-12);
+  renderAniWaveAIChat();
+  status.textContent="Ответ получен. Изменения сайта не выполнялись.";
+ }catch(error){
+  aniWaveAIHistory.push({role:"assistant",text:"Не удалось получить ответ: "+error.message});
+  renderAniWaveAIChat();
+  status.textContent="Проверь настройки API и журнал Worker.";
+ }finally{
+  send.disabled=false;auditButton.disabled=false;
+ }
+}
 async function bunnyAdminRequest(path,options={}){
  const token=await user.getIdToken(true);
  const response=await fetch("https://aniwave-bunny-upload.ilya-shashkin-95.workers.dev"+path,{...options,headers:{"Authorization":"Bearer "+token,"Content-Type":"application/json",...(options.headers||{})}});
@@ -1671,7 +1740,10 @@ async function bindBunnyVideo(videoId){
  finally{if(button){button.disabled=false;button.textContent="Сохранить привязку"}}
 }
 async function uploadVideoToBunny(){
-  const file=document.getElementById("bunnyVideoFile").files[0],button=document.getElementById("bunnyUploadButton"),message=document.getElementById("bunnyUploadMessage"),status=document.getElementById("bunnyUploadStatus"),percent=document.getElementById("bunnyUploadPercent"),bar=document.getElementById("bunnyUploadProgress");
+  const file=document.getElementById("bunnyVideoFile").files[0],button=document.getElementById("aniWaveAISend")?.addEventListener("click",()=>sendAniWaveAI(false));
+document.getElementById("aniWaveAIAudit")?.addEventListener("click",()=>sendAniWaveAI(true));
+document.getElementById("aniWaveAIInput")?.addEventListener("keydown",event=>{if(event.key==="Enter"&&!event.shiftKey){event.preventDefault();sendAniWaveAI(false)}});
+document.getElementById("bunnyUploadButton"),message=document.getElementById("bunnyUploadMessage"),status=document.getElementById("bunnyUploadStatus"),percent=document.getElementById("bunnyUploadPercent"),bar=document.getElementById("bunnyUploadProgress");
   if(!user||!isAdmin){message.textContent="Нет прав администратора.";return}
   if(!file){message.textContent="Сначала выбери видеофайл.";return}
   if(!file.type.startsWith("video/")){message.textContent="Выбери видеофайл, например MP4 или WebM.";return}
