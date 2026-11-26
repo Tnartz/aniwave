@@ -1,0 +1,185 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /watchProgress/{progressId} {
+      allow read: if request.auth != null
+        && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid;
+      allow update: if request.auth != null
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == request.auth.uid;
+      allow delete: if request.auth != null
+        && resource.data.userId == request.auth.uid;
+    }
+
+    match /watchlists/{watchlistId} {
+      allow read: if (
+        request.auth != null
+        && resource.data.userId == request.auth.uid
+      ) || (
+        resource.data.userId is string
+        && exists(/databases/$(database)/documents/userProfiles/$(resource.data.userId))
+        && get(/databases/$(database)/documents/userProfiles/$(resource.data.userId)).data.publicWatched == true
+      );
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.animeTitle is string
+        && request.resource.data.status is string;
+      allow update: if request.auth != null
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.animeTitle is string
+        && request.resource.data.status is string;
+      allow delete: if request.auth != null
+        && resource.data.userId == request.auth.uid;
+    }
+
+    // Все отзывы доступны для чтения, но изменять их может только автор.
+    match /animeReviews/{reviewId} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly([
+          'userId', 'animeTitle', 'displayName', 'rating', 'text',
+          'updatedAt', 'updatedAtServer'
+        ])
+        && request.resource.data.keys().hasAll([
+          'userId', 'animeTitle', 'rating', 'text'
+        ])
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.animeTitle is string
+        && request.resource.data.animeTitle.size() > 0
+        && request.resource.data.animeTitle.size() <= 200
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 10
+        && request.resource.data.text is string
+        && request.resource.data.text.size() <= 1200
+        && (!('displayName' in request.resource.data)
+          || request.resource.data.displayName is string)
+        && (!('updatedAt' in request.resource.data)
+          || request.resource.data.updatedAt is int)
+        && (!('updatedAtServer' in request.resource.data)
+          || request.resource.data.updatedAtServer is timestamp);
+      allow update: if request.auth != null
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.keys().hasOnly([
+          'userId', 'animeTitle', 'displayName', 'rating', 'text',
+          'updatedAt', 'updatedAtServer'
+        ])
+        && request.resource.data.keys().hasAll([
+          'userId', 'animeTitle', 'rating', 'text'
+        ])
+        && request.resource.data.animeTitle is string
+        && request.resource.data.animeTitle.size() > 0
+        && request.resource.data.animeTitle.size() <= 200
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 10
+        && request.resource.data.text is string
+        && request.resource.data.text.size() <= 1200
+        && (!('displayName' in request.resource.data)
+          || request.resource.data.displayName is string)
+        && (!('updatedAt' in request.resource.data)
+          || request.resource.data.updatedAt is int)
+        && (!('updatedAtServer' in request.resource.data)
+          || request.resource.data.updatedAtServer is timestamp);
+      allow delete: if request.auth != null
+        && resource.data.userId == request.auth.uid;
+    }
+
+    match /animeComments/{commentId} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.animeTitle is string
+        && request.resource.data.season is int
+        && request.resource.data.season >= 1
+        && request.resource.data.episode is int
+        && request.resource.data.episode >= 1
+        && request.resource.data.text is string
+        && request.resource.data.text.size() >= 1
+        && request.resource.data.text.size() <= 1000
+        && request.resource.data.nickname is string
+        && request.resource.data.avatar is string;
+      allow update: if false;
+      allow delete: if request.auth != null
+        && resource.data.userId == request.auth.uid;
+    }
+
+    match /userProfiles/{userId} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.nickname is string
+        && request.resource.data.nickname.size() >= 2
+        && request.resource.data.nickname.size() <= 24
+        && request.resource.data.avatar is string;
+      allow update: if request.auth != null
+        && request.auth.uid == userId
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.nickname is string
+        && request.resource.data.nickname.size() >= 2
+        && request.resource.data.nickname.size() <= 24
+        && request.resource.data.avatar is string;
+      allow delete: if request.auth != null
+        && request.auth.uid == userId;
+    }
+
+    match /directMessages/{messageId} {
+      allow read: if request.auth != null
+        && (
+          resource.data.fromId == request.auth.uid
+          || resource.data.toId == request.auth.uid
+        );
+      allow create: if request.auth != null
+        && request.resource.data.fromId == request.auth.uid
+        && request.resource.data.toId is string
+        && request.resource.data.toId != request.auth.uid
+        && request.resource.data.fromName is string
+        && request.resource.data.fromAvatar is string
+        && request.resource.data.toName is string
+        && request.resource.data.toAvatar is string
+        && request.resource.data.text is string
+        && request.resource.data.text.size() >= 1
+        && request.resource.data.text.size() <= 2000;
+      allow update, delete: if false;
+    }
+
+    match /animeCatalog/{animeId} {
+      allow read: if true;
+      allow create, update, delete: if request.auth != null
+        && request.auth.token.admin == true;
+    }
+
+    match /favorites/{favoriteId} {
+      allow read: if (
+        request.auth != null
+        && resource.data.userId == request.auth.uid
+      ) || (
+        resource.data.userId is string
+        && exists(/databases/$(database)/documents/userProfiles/$(resource.data.userId))
+        && get(/databases/$(database)/documents/userProfiles/$(resource.data.userId)).data.publicFavorites == true
+      );
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.animeTitle is string;
+      allow update: if request.auth != null
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.animeTitle is string;
+      allow delete: if request.auth != null
+        && resource.data.userId == request.auth.uid;
+    }
+
+    match /streams/{streamId} {
+      allow read: if true;
+      allow create, update, delete: if request.auth != null
+        && request.auth.token.admin == true;
+    }
+  }
+}
