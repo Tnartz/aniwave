@@ -2,69 +2,137 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    match /watchProgress/{progressId} {
-      allow read: if request.auth != null
-        && resource.data.userId == request.auth.uid;
-      allow create: if request.auth != null
-        && request.resource.data.userId == request.auth.uid;
-      allow update: if request.auth != null
-        && resource.data.userId == request.auth.uid
-        && request.resource.data.userId == request.auth.uid;
-      allow delete: if request.auth != null
-        && resource.data.userId == request.auth.uid;
+    function signedIn() {
+      return request.auth != null;
     }
 
+    function isAdmin() {
+      return signedIn() && request.auth.token.admin == true;
+    }
+
+    function ownsExistingDocument() {
+      return signedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    function ownsIncomingDocument() {
+      return signedIn() && request.resource.data.userId == request.auth.uid;
+    }
+
+    function validOptionalTimestamp(data, field) {
+      return !(field in data) || data[field] is timestamp;
+    }
+
+    function validOptionalInteger(data, field) {
+      return !(field in data) || data[field] is int;
+    }
+
+    // Личный прогресс просмотра: доступен только владельцу.
+    match /watchProgress/{progressId} {
+      allow read, delete: if ownsExistingDocument();
+
+      allow create: if ownsIncomingDocument()
+        && request.resource.data.keys().hasOnly([
+          'userId', 'animeTitle', 'season', 'episode', 'time',
+          'duration', 'updatedAt', 'updatedAtServer'
+        ])
+        && request.resource.data.keys().hasAll([
+          'userId', 'animeTitle', 'season', 'episode', 'time',
+          'duration', 'updatedAt'
+        ])
+        && request.resource.data.animeTitle is string
+        && request.resource.data.animeTitle.size() > 0
+        && request.resource.data.animeTitle.size() <= 200
+        && request.resource.data.season is int
+        && request.resource.data.season >= 1
+        && request.resource.data.season <= 99
+        && request.resource.data.episode is int
+        && request.resource.data.episode >= 1
+        && request.resource.data.episode <= 999
+        && request.resource.data.time is number
+        && request.resource.data.time >= 0
+        && request.resource.data.duration is number
+        && request.resource.data.duration >= 0
+        && request.resource.data.updatedAt is int
+        && validOptionalTimestamp(request.resource.data, 'updatedAtServer');
+
+      allow update: if ownsExistingDocument()
+        && ownsIncomingDocument()
+        && request.resource.data.keys().hasOnly([
+          'userId', 'animeTitle', 'season', 'episode', 'time',
+          'duration', 'updatedAt', 'updatedAtServer'
+        ])
+        && request.resource.data.keys().hasAll([
+          'userId', 'animeTitle', 'season', 'episode', 'time',
+          'duration', 'updatedAt'
+        ])
+        && request.resource.data.animeTitle is string
+        && request.resource.data.animeTitle.size() > 0
+        && request.resource.data.animeTitle.size() <= 200
+        && request.resource.data.season is int
+        && request.resource.data.season >= 1
+        && request.resource.data.season <= 99
+        && request.resource.data.episode is int
+        && request.resource.data.episode >= 1
+        && request.resource.data.episode <= 999
+        && request.resource.data.time is number
+        && request.resource.data.time >= 0
+        && request.resource.data.duration is number
+        && request.resource.data.duration >= 0
+        && request.resource.data.updatedAt is int
+        && validOptionalTimestamp(request.resource.data, 'updatedAtServer');
+    }
+
+    // Списки просмотра: приватны по умолчанию, публичны при publicWatched=true.
     match /watchlists/{watchlistId} {
       allow read: if (
-        request.auth != null
-        && resource.data.userId == request.auth.uid
+        signedIn() && resource.data.userId == request.auth.uid
       ) || (
         resource.data.userId is string
         && exists(/databases/$(database)/documents/userProfiles/$(resource.data.userId))
         && get(/databases/$(database)/documents/userProfiles/$(resource.data.userId)).data.publicWatched == true
       );
-      allow create: if request.auth != null
-        && request.resource.data.userId == request.auth.uid
+
+      allow create: if ownsIncomingDocument()
+        && request.resource.data.keys().hasOnly([
+          'userId', 'animeTitle', 'status', 'updatedAt', 'updatedAtServer'
+        ])
+        && request.resource.data.keys().hasAll([
+          'userId', 'animeTitle', 'status'
+        ])
         && request.resource.data.animeTitle is string
-        && request.resource.data.status is string;
-      allow update: if request.auth != null
-        && resource.data.userId == request.auth.uid
-        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.animeTitle.size() > 0
+        && request.resource.data.animeTitle.size() <= 200
+        && request.resource.data.status in [
+          'watching', 'planned', 'completed', 'paused', 'dropped'
+        ]
+        && validOptionalInteger(request.resource.data, 'updatedAt')
+        && validOptionalTimestamp(request.resource.data, 'updatedAtServer');
+
+      allow update: if ownsExistingDocument()
+        && ownsIncomingDocument()
+        && request.resource.data.keys().hasOnly([
+          'userId', 'animeTitle', 'status', 'updatedAt', 'updatedAtServer'
+        ])
+        && request.resource.data.keys().hasAll([
+          'userId', 'animeTitle', 'status'
+        ])
         && request.resource.data.animeTitle is string
-        && request.resource.data.status is string;
-      allow delete: if request.auth != null
-        && resource.data.userId == request.auth.uid;
+        && request.resource.data.animeTitle.size() > 0
+        && request.resource.data.animeTitle.size() <= 200
+        && request.resource.data.status in [
+          'watching', 'planned', 'completed', 'paused', 'dropped'
+        ]
+        && validOptionalInteger(request.resource.data, 'updatedAt')
+        && validOptionalTimestamp(request.resource.data, 'updatedAtServer');
+
+      allow delete: if ownsExistingDocument();
     }
 
-    // Все отзывы доступны для чтения, но изменять их может только автор.
+    // Все отзывы публичны. Создавать, менять и удалять отзыв может только автор.
     match /animeReviews/{reviewId} {
       allow read: if true;
-      allow create: if request.auth != null
-        && request.resource.data.keys().hasOnly([
-          'userId', 'animeTitle', 'displayName', 'rating', 'text',
-          'updatedAt', 'updatedAtServer'
-        ])
-        && request.resource.data.keys().hasAll([
-          'userId', 'animeTitle', 'rating', 'text'
-        ])
-        && request.resource.data.userId == request.auth.uid
-        && request.resource.data.animeTitle is string
-        && request.resource.data.animeTitle.size() > 0
-        && request.resource.data.animeTitle.size() <= 200
-        && request.resource.data.rating is int
-        && request.resource.data.rating >= 1
-        && request.resource.data.rating <= 10
-        && request.resource.data.text is string
-        && request.resource.data.text.size() <= 1200
-        && (!('displayName' in request.resource.data)
-          || request.resource.data.displayName is string)
-        && (!('updatedAt' in request.resource.data)
-          || request.resource.data.updatedAt is int)
-        && (!('updatedAtServer' in request.resource.data)
-          || request.resource.data.updatedAtServer is timestamp);
-      allow update: if request.auth != null
-        && resource.data.userId == request.auth.uid
-        && request.resource.data.userId == request.auth.uid
+
+      allow create: if ownsIncomingDocument()
         && request.resource.data.keys().hasOnly([
           'userId', 'animeTitle', 'displayName', 'rating', 'text',
           'updatedAt', 'updatedAtServer'
@@ -82,63 +150,146 @@ service cloud.firestore {
         && request.resource.data.text.size() <= 1200
         && (!('displayName' in request.resource.data)
           || request.resource.data.displayName is string)
-        && (!('updatedAt' in request.resource.data)
-          || request.resource.data.updatedAt is int)
-        && (!('updatedAtServer' in request.resource.data)
-          || request.resource.data.updatedAtServer is timestamp);
-      allow delete: if request.auth != null
-        && resource.data.userId == request.auth.uid;
+        && validOptionalInteger(request.resource.data, 'updatedAt')
+        && validOptionalTimestamp(request.resource.data, 'updatedAtServer');
+
+      allow update: if ownsExistingDocument()
+        && ownsIncomingDocument()
+        && request.resource.data.keys().hasOnly([
+          'userId', 'animeTitle', 'displayName', 'rating', 'text',
+          'updatedAt', 'updatedAtServer'
+        ])
+        && request.resource.data.keys().hasAll([
+          'userId', 'animeTitle', 'rating', 'text'
+        ])
+        && request.resource.data.animeTitle is string
+        && request.resource.data.animeTitle.size() > 0
+        && request.resource.data.animeTitle.size() <= 200
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 10
+        && request.resource.data.text is string
+        && request.resource.data.text.size() <= 1200
+        && (!('displayName' in request.resource.data)
+          || request.resource.data.displayName is string)
+        && validOptionalInteger(request.resource.data, 'updatedAt')
+        && validOptionalTimestamp(request.resource.data, 'updatedAtServer');
+
+      allow delete: if ownsExistingDocument();
     }
 
+    // Комментарии публичны для чтения; автор может удалить свой комментарий.
     match /animeComments/{commentId} {
       allow read: if true;
-      allow create: if request.auth != null
-        && request.resource.data.userId == request.auth.uid
+
+      allow create: if ownsIncomingDocument()
+        && request.resource.data.keys().hasOnly([
+          'userId', 'animeTitle', 'season', 'episode', 'nickname',
+          'avatar', 'text', 'createdAt', 'createdAtServer'
+        ])
+        && request.resource.data.keys().hasAll([
+          'userId', 'animeTitle', 'season', 'episode', 'nickname',
+          'avatar', 'text', 'createdAt'
+        ])
         && request.resource.data.animeTitle is string
+        && request.resource.data.animeTitle.size() > 0
+        && request.resource.data.animeTitle.size() <= 200
         && request.resource.data.season is int
         && request.resource.data.season >= 1
+        && request.resource.data.season <= 99
         && request.resource.data.episode is int
         && request.resource.data.episode >= 1
+        && request.resource.data.episode <= 999
+        && request.resource.data.nickname is string
+        && request.resource.data.nickname.size() <= 80
+        && request.resource.data.avatar is string
+        && request.resource.data.avatar.size() <= 40
         && request.resource.data.text is string
         && request.resource.data.text.size() >= 1
         && request.resource.data.text.size() <= 1000
-        && request.resource.data.nickname is string
-        && request.resource.data.avatar is string;
+        && request.resource.data.createdAt is int
+        && validOptionalTimestamp(request.resource.data, 'createdAtServer');
+
       allow update: if false;
-      allow delete: if request.auth != null
+      allow delete: if ownsExistingDocument();
+    }
+
+    // Публичные карточки профиля содержат только разрешённые поля.
+    // publicReviews допускается как legacy-поле, но клиент больше не использует его.
+    match /userProfiles/{userId} {
+      allow read: if true;
+
+      allow create: if signedIn()
+        && request.auth.uid == userId
+        && ownsIncomingDocument()
+        && request.resource.data.keys().hasOnly([
+          'userId', 'nickname', 'avatar', 'publicFavorites',
+          'publicReviews', 'publicWatched', 'updatedAt', 'updatedAtServer'
+        ])
+        && request.resource.data.keys().hasAll([
+          'userId', 'nickname', 'avatar'
+        ])
+        && request.resource.data.nickname is string
+        && request.resource.data.nickname.size() >= 2
+        && request.resource.data.nickname.size() <= 24
+        && request.resource.data.avatar is string
+        && (!('publicFavorites' in request.resource.data)
+          || request.resource.data.publicFavorites is bool)
+        && (!('publicReviews' in request.resource.data)
+          || request.resource.data.publicReviews is bool)
+        && (!('publicWatched' in request.resource.data)
+          || request.resource.data.publicWatched is bool)
+        && validOptionalInteger(request.resource.data, 'updatedAt')
+        && validOptionalTimestamp(request.resource.data, 'updatedAtServer');
+
+      allow update: if signedIn()
+        && request.auth.uid == userId
+        && resource.data.userId == request.auth.uid
+        && ownsIncomingDocument()
+        && request.resource.data.keys().hasOnly([
+          'userId', 'nickname', 'avatar', 'publicFavorites',
+          'publicReviews', 'publicWatched', 'updatedAt', 'updatedAtServer'
+        ])
+        && request.resource.data.keys().hasAll([
+          'userId', 'nickname', 'avatar'
+        ])
+        && request.resource.data.nickname is string
+        && request.resource.data.nickname.size() >= 2
+        && request.resource.data.nickname.size() <= 24
+        && request.resource.data.avatar is string
+        && (!('publicFavorites' in request.resource.data)
+          || request.resource.data.publicFavorites is bool)
+        && (!('publicReviews' in request.resource.data)
+          || request.resource.data.publicReviews is bool)
+        && (!('publicWatched' in request.resource.data)
+          || request.resource.data.publicWatched is bool)
+        && validOptionalInteger(request.resource.data, 'updatedAt')
+        && validOptionalTimestamp(request.resource.data, 'updatedAtServer');
+
+      allow delete: if signedIn() && request.auth.uid == userId
         && resource.data.userId == request.auth.uid;
     }
 
-    match /userProfiles/{userId} {
-      allow read: if true;
-      allow create: if request.auth != null
-        && request.auth.uid == userId
-        && request.resource.data.userId == request.auth.uid
-        && request.resource.data.nickname is string
-        && request.resource.data.nickname.size() >= 2
-        && request.resource.data.nickname.size() <= 24
-        && request.resource.data.avatar is string;
-      allow update: if request.auth != null
-        && request.auth.uid == userId
-        && resource.data.userId == request.auth.uid
-        && request.resource.data.userId == request.auth.uid
-        && request.resource.data.nickname is string
-        && request.resource.data.nickname.size() >= 2
-        && request.resource.data.nickname.size() <= 24
-        && request.resource.data.avatar is string;
-      allow delete: if request.auth != null
-        && request.auth.uid == userId;
-    }
-
+    // Личные сообщения доступны только отправителю и получателю; редактирование запрещено.
     match /directMessages/{messageId} {
-      allow read: if request.auth != null
+      allow read: if signedIn()
         && (
           resource.data.fromId == request.auth.uid
           || resource.data.toId == request.auth.uid
         );
-      allow create: if request.auth != null
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'fromId', 'toId', 'fromName', 'fromAvatar', 'toName',
+          'toAvatar', 'text', 'createdAt', 'createdAtServer'
+        ])
+        && request.resource.data.keys().hasAll([
+          'fromId', 'toId', 'fromName', 'fromAvatar', 'toName',
+          'toAvatar', 'text', 'createdAt'
+        ])
         && request.resource.data.fromId == request.auth.uid
         && request.resource.data.toId is string
+        && request.resource.data.toId.size() > 0
         && request.resource.data.toId != request.auth.uid
         && request.resource.data.fromName is string
         && request.resource.data.fromAvatar is string
@@ -146,40 +297,60 @@ service cloud.firestore {
         && request.resource.data.toAvatar is string
         && request.resource.data.text is string
         && request.resource.data.text.size() >= 1
-        && request.resource.data.text.size() <= 2000;
+        && request.resource.data.text.size() <= 2000
+        && request.resource.data.createdAt is int
+        && validOptionalTimestamp(request.resource.data, 'createdAtServer');
+
       allow update, delete: if false;
     }
 
+    // Каталог и потоки доступны для чтения; любые записи — только администратору.
     match /animeCatalog/{animeId} {
       allow read: if true;
-      allow create, update, delete: if request.auth != null
-        && request.auth.token.admin == true;
+      allow create, update, delete: if isAdmin();
     }
 
+    match /streams/{streamId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Избранное приватно по умолчанию, публично при publicFavorites=true.
     match /favorites/{favoriteId} {
       allow read: if (
-        request.auth != null
-        && resource.data.userId == request.auth.uid
+        signedIn() && resource.data.userId == request.auth.uid
       ) || (
         resource.data.userId is string
         && exists(/databases/$(database)/documents/userProfiles/$(resource.data.userId))
         && get(/databases/$(database)/documents/userProfiles/$(resource.data.userId)).data.publicFavorites == true
       );
-      allow create: if request.auth != null
-        && request.resource.data.userId == request.auth.uid
-        && request.resource.data.animeTitle is string;
-      allow update: if request.auth != null
-        && resource.data.userId == request.auth.uid
-        && request.resource.data.userId == request.auth.uid
-        && request.resource.data.animeTitle is string;
-      allow delete: if request.auth != null
-        && resource.data.userId == request.auth.uid;
-    }
 
-    match /streams/{streamId} {
-      allow read: if true;
-      allow create, update, delete: if request.auth != null
-        && request.auth.token.admin == true;
+      allow create: if ownsIncomingDocument()
+        && request.resource.data.keys().hasOnly([
+          'userId', 'animeTitle', 'createdAt'
+        ])
+        && request.resource.data.keys().hasAll([
+          'userId', 'animeTitle', 'createdAt'
+        ])
+        && request.resource.data.animeTitle is string
+        && request.resource.data.animeTitle.size() > 0
+        && request.resource.data.animeTitle.size() <= 200
+        && request.resource.data.createdAt is timestamp;
+
+      allow update: if ownsExistingDocument()
+        && ownsIncomingDocument()
+        && request.resource.data.keys().hasOnly([
+          'userId', 'animeTitle', 'createdAt'
+        ])
+        && request.resource.data.keys().hasAll([
+          'userId', 'animeTitle', 'createdAt'
+        ])
+        && request.resource.data.animeTitle is string
+        && request.resource.data.animeTitle.size() > 0
+        && request.resource.data.animeTitle.size() <= 200
+        && request.resource.data.createdAt is timestamp;
+
+      allow delete: if ownsExistingDocument();
     }
   }
 }
