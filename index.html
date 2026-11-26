@@ -1740,10 +1740,7 @@ async function bindBunnyVideo(videoId){
  finally{if(button){button.disabled=false;button.textContent="Сохранить привязку"}}
 }
 async function uploadVideoToBunny(){
-  const file=document.getElementById("bunnyVideoFile").files[0],button=document.getElementById("aniWaveAISend")?.addEventListener("click",()=>sendAniWaveAI(false));
-document.getElementById("aniWaveAIAudit")?.addEventListener("click",()=>sendAniWaveAI(true));
-document.getElementById("aniWaveAIInput")?.addEventListener("keydown",event=>{if(event.key==="Enter"&&!event.shiftKey){event.preventDefault();sendAniWaveAI(false)}});
-document.getElementById("bunnyUploadButton"),message=document.getElementById("bunnyUploadMessage"),status=document.getElementById("bunnyUploadStatus"),percent=document.getElementById("bunnyUploadPercent"),bar=document.getElementById("bunnyUploadProgress");
+  const file=document.getElementById("bunnyVideoFile").files[0],button=document.getElementById("bunnyUploadButton"),message=document.getElementById("bunnyUploadMessage"),status=document.getElementById("bunnyUploadStatus"),percent=document.getElementById("bunnyUploadPercent"),bar=document.getElementById("bunnyUploadProgress");
   if(!user||!isAdmin){message.textContent="Нет прав администратора.";return}
   if(!file){message.textContent="Сначала выбери видеофайл.";return}
   if(!file.type.startsWith("video/")){message.textContent="Выбери видеофайл, например MP4 или WebM.";return}
@@ -1824,6 +1821,9 @@ async function deleteStream(animeTitle,season,ep){
   if(currentAnime.name===animeTitle&&selectedSeason===season&&episode===ep)awLoadEpisode();
  }catch(error){document.getElementById("adminMessage").textContent="Не удалось удалить: "+error.message}
 }
+document.getElementById("aniWaveAISend")?.addEventListener("click",()=>sendAniWaveAI(false));
+document.getElementById("aniWaveAIAudit")?.addEventListener("click",()=>sendAniWaveAI(true));
+document.getElementById("aniWaveAIInput")?.addEventListener("keydown",event=>{if(event.key==="Enter"&&!event.shiftKey){event.preventDefault();sendAniWaveAI(false)}});
 document.getElementById("adminSave").addEventListener("click",saveStream);
 document.getElementById("adminBulkSave").addEventListener("click",saveBulkEpisodes);
 document.getElementById("bunnyUploadButton").addEventListener("click",uploadVideoToBunny);
