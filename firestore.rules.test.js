@@ -8,6 +8,7 @@ import {
 } from "@firebase/rules-unit-testing";
 import {
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -262,5 +263,6 @@ test("user profiles are publicly readable but writable only by the matching owne
     userId: "user-b",
   }));
 
-  await assertFails(doc(outsiderDb, "userProfiles/user-a").delete());
+  await assertFails(deleteDoc(doc(outsiderDb, "userProfiles/user-a")));
+  await assertSucceeds(deleteDoc(doc(ownerDb, "userProfiles/user-a")));
 });
