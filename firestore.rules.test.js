@@ -238,3 +238,29 @@ test("only users with the admin custom claim can write anime catalog and streams
     animeTitle: "Authorized anime",
   }));
 });
+
+
+test("user profiles are publicly readable but writable only by the matching owner", async () => {
+  const guestDb = env.unauthenticatedContext().firestore();
+  const ownerDb = env.authenticatedContext("user-a").firestore();
+  const outsiderDb = env.authenticatedContext("user-b").firestore();
+
+  await assertSucceeds(getDoc(doc(guestDb, "userProfiles/user-a")));
+
+  await assertSucceeds(updateDoc(doc(ownerDb, "userProfiles/user-a"), {
+    nickname: "Owner updated",
+    avatar: "🌙",
+    updatedAt: Date.now(),
+    updatedAtServer: serverTimestamp(),
+  }));
+
+  await assertFails(updateDoc(doc(outsiderDb, "userProfiles/user-a"), {
+    nickname: "Outsider update",
+  }));
+
+  await assertFails(updateDoc(doc(ownerDb, "userProfiles/user-a"), {
+    userId: "user-b",
+  }));
+
+  await assertFails(doc(outsiderDb, "userProfiles/user-a").delete());
+});
