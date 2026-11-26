@@ -62,6 +62,16 @@ beforeEach(async () => {
       duration: 1440,
       updatedAt: 1700000000000,
     });
+    await setDoc(doc(db, "directMessages/message-a"), {
+      fromId: "user-a",
+      toId: "user-b",
+      fromName: "A",
+      fromAvatar: "🌙",
+      toName: "B",
+      toAvatar: "⭐",
+      text: "Hello",
+      createdAt: 1700000000000,
+    });
   });
 });
 
@@ -170,4 +180,61 @@ test("public favorites and watchlists queries work only when the profile visibil
   );
   await assertFails(getDocs(privateFavoritesQuery));
   await assertFails(getDocs(privateWatchlistsQuery));
+});
+
+test("direct messages can be queried by sender or recipient, but not by outsiders", async () => {
+  const senderDb = env.authenticatedContext("user-a").firestore();
+  const recipientDb = env.authenticatedContext("user-b").firestore();
+  const outsiderDb = env.authenticatedContext("user-c").firestore();
+
+  await assertSucceeds(getDocs(query(
+    collection(senderDb, "directMessages"),
+    where("fromId", "==", "user-a"),
+  )));
+  await assertSucceeds(getDocs(query(
+    collection(recipientDb, "directMessages"),
+    where("toId", "==", "user-b"),
+  )));
+  await assertFails(getDocs(collection(outsiderDb, "directMessages")));
+
+  await assertSucceeds(setDoc(doc(senderDb, "directMessages/message-from-a"), {
+    fromId: "user-a",
+    toId: "user-b",
+    fromName: "A",
+    fromAvatar: "🌙",
+    toName: "B",
+    toAvatar: "⭐",
+    text: "A valid message",
+    createdAt: Date.now(),
+    createdAtServer: serverTimestamp(),
+  }));
+  await assertFails(setDoc(doc(senderDb, "directMessages/message-spoofed"), {
+    fromId: "user-b",
+    toId: "user-a",
+    fromName: "B",
+    fromAvatar: "⭐",
+    toName: "A",
+    toAvatar: "🌙",
+    text: "Spoofed sender",
+    createdAt: Date.now(),
+  }));
+});
+
+test("only users with the admin custom claim can write anime catalog and streams", async () => {
+  const regularDb = env.authenticatedContext("user-a").firestore();
+  const adminDb = env.authenticatedContext("admin-user", { admin: true }).firestore();
+
+  await assertFails(setDoc(doc(regularDb, "animeCatalog/regular-write"), {
+    name: "Unauthorized anime",
+  }));
+  await assertFails(setDoc(doc(regularDb, "streams/regular-write"), {
+    animeTitle: "Unauthorized anime",
+  }));
+
+  await assertSucceeds(setDoc(doc(adminDb, "animeCatalog/admin-write"), {
+    name: "Authorized anime",
+  }));
+  await assertSucceeds(setDoc(doc(adminDb, "streams/admin-write"), {
+    animeTitle: "Authorized anime",
+  }));
 });
